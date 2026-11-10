@@ -37,7 +37,10 @@
     }
 
     win.addEventListener('pointermove', move, opts);
-    win.document.addEventListener('mouseleave', release, opts);
+    // mouseleave also reaches this capture listener for every element the pointer leaves, so only the document counts.
+    win.document.addEventListener('mouseleave', (e) => {
+      if (e.target === win.document || e.target === win.document.documentElement) release();
+    }, opts);
     win.addEventListener('pointerout', (e) => { if (!e.relatedTarget) release(); }, opts);
 
     return {

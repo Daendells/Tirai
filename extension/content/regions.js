@@ -69,8 +69,9 @@
     };
   }
 
-  function currentChatTitle(doc = document) {
-    const { mainEl } = findRegions(doc);
+  // Pass mainEl when it is already known to skip a second region scan.
+  function currentChatTitle(doc = document, knownMainEl) {
+    const mainEl = knownMainEl || findRegions(doc).mainEl;
     if (!mainEl) return null;
     for (const s of mainEl.querySelectorAll('header span[title]')) {
       const t = s.getAttribute('title').trim();

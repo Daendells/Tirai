@@ -35,7 +35,10 @@ async function withPage(fixture, patch, fn) {
   await reset(patch);
   const page = await openFixture(browser, URL, fixture);
   try {
-    await waitForState(page, (i) => i.present && i.state);
+    // The curtain draws the defaults first, so wait until the stored settings have been applied.
+    const mode = patch.mode || 'normal';
+    const rule = patch.chats && patch.chats['Budi Santoso'];
+    await waitForState(page, (i) => i.state && i.state.mode === mode && (!rule || i.state.rule === rule), 2000);
     await fn(page);
   } finally {
     await page.close();
@@ -140,6 +143,19 @@ test('lamp opens after dwell', async () => {
   });
 });
 
+test('lamp stays open while the pointer crosses rows', async () => {
+  await withPage('whatsapp.html', {}, async (page) => {
+    await page.mouse.move(200, 300);
+    await sleep(250);
+    for (const [x, y] of [[200, 330], [260, 360], [300, 400], [150, 440], [260, 500], [200, 560]]) {
+      await page.mouse.move(x, y);
+      await sleep(40);
+      const hit = (await masks(page)).find((t) => holds(t, { x, y }));
+      assert.match(hit.mask, /transparent/, `lamp closed at ${x},${y}`);
+    }
+  });
+});
+
 test('clicks pass through the curtain', async () => {
   await withPage('whatsapp.html', {}, async (page) => {
     await page.mouse.click(264, 352);
@@ -152,8 +168,7 @@ test('focused compose box is a hole', async () => {
     await page.focus(COMPOSE);
     const box = await page.$eval(COMPOSE, (el) => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; });
     const centre = { x: box.x + box.w / 2, y: box.y + box.h / 2 };
-    const info = await waitForState(page, (i) => i.tiles.length > 1, 2000);
-    assert.equal(info.tiles.some((t) => holds(t, centre)), false);
+    const info = await waitForState(page, (i) => !i.tiles.some((t) => holds(t, centre)), 2000);
     assert.ok(info.tiles.some((t) => holds(t, MAIN_CENTRE)));
   });
 });
@@ -174,10 +189,67 @@ test('focusing the whole chat list does not open it', async () => {
 
 test('open menu is a hole', async () => {
   await withPage('whatsapp.html', {}, async (page) => {
-    await page.evaluate(() => { document.getElementById('fx-menu').style.display = 'block'; });
+    await page.evaluate(() => {
+      const m = document.createElement('div');
+      m.id = 'real-menu';
+      m.setAttribute('role', 'menu');
+      m.style.cssText = 'position:fixed;left:200px;top:300px;width:180px;height:160px;background:#233138';
+      document.body.append(m);
+    });
     const menu = { x: 200, y: 300, w: 180, h: 160 };
     const info = await waitForState(page, (i) => i.tiles.length > 1 && i.tiles.every((t) => !meets(t, menu)), 2000);
     assert.ok(info.tiles.length > 1);
+    await page.evaluate(() => document.getElementById('real-menu').remove());
+    const closed = await waitForState(page, (i) => i.tiles.length === 1, 2000);
+    assert.ok(near(area(closed.tiles), SIDE.w * SIDE.h, SIDE.w * SIDE.h * 0.01));
+  });
+});
+
+test('popups that are not visible do not open holes', async () => {
+  await withPage('whatsapp.html', {}, async (page) => {
+    await page.evaluate(() => {
+      const hidden = document.createElement('div');
+      hidden.style.display = 'none';
+      const inner = document.createElement('div');
+      inner.setAttribute('role', 'menu');
+      inner.style.cssText = 'position:fixed;left:200px;top:300px;width:180px;height:160px';
+      hidden.append(inner);
+      const faded = document.createElement('div');
+      faded.setAttribute('role', 'menu');
+      faded.style.cssText = 'position:fixed;left:200px;top:500px;width:180px;height:100px;opacity:0';
+      document.body.append(hidden, faded);
+    });
+    await sleep(400);
+    const info = await curtainInfo(page);
+    assert.equal(info.tiles.length, 1);
+  });
+});
+
+test('a viewport-sized dialog does not open a hole', async () => {
+  await withPage('whatsapp.html', { mode: 'full' }, async (page) => {
+    await page.evaluate(() => {
+      const d = document.createElement('div');
+      d.setAttribute('role', 'dialog');
+      d.style.cssText = 'position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none';
+      document.body.append(d);
+    });
+    await sleep(400);
+    const info = await curtainInfo(page);
+    assert.ok(near(area(info.tiles), VIEWPORT.w * VIEWPORT.h, VIEWPORT.w * VIEWPORT.h * 0.01), 'area ' + area(info.tiles));
+  });
+});
+
+test('a listbox the size of the chat list does not open a hole', async () => {
+  await withPage('whatsapp.html', {}, async (page) => {
+    await page.evaluate(() => {
+      const d = document.createElement('div');
+      d.setAttribute('role', 'listbox');
+      d.style.cssText = 'position:fixed;left:64px;top:0;width:420px;height:800px;pointer-events:none';
+      document.body.append(d);
+    });
+    await sleep(400);
+    const info = await curtainInfo(page);
+    assert.ok(near(area(info.tiles), SIDE.w * SIDE.h, SIDE.w * SIDE.h * 0.01), 'area ' + area(info.tiles));
   });
 });
 
@@ -192,6 +264,45 @@ test('unfocus auto', async () => {
     await page.evaluate(() => window.dispatchEvent(new Event('focus')));
     const back = await waitForState(page, (i) => i.state.mode === 'normal', 600);
     assert.equal(back.state.reason, 'user');
+  });
+});
+
+test('auto cover ignores the show rule', async () => {
+  const auto = { share: false, unfocus: true, idle: false, idleSeconds: 60 };
+  await withPage('whatsapp.html', { mode: 'full', auto, chats: { 'Budi Santoso': 'show' } }, async (page) => {
+    const open = await waitForState(page, (i) => i.state.reason === 'user' && !i.tiles.some((t) => holds(t, MAIN_CENTRE)), 2000);
+    assert.equal(open.state.rule, 'show');
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    const info = await waitForState(page, (i) => i.state.reason === 'unfocus', 1000);
+    assert.ok(info.tiles.some((t) => holds(t, MAIN_CENTRE)), JSON.stringify(info.tiles));
+    assert.equal(area(info.tiles), VIEWPORT.w * VIEWPORT.h);
+  });
+});
+
+test('auto cover ignores a focused compose box', async () => {
+  const auto = { share: false, unfocus: true, idle: false, idleSeconds: 60 };
+  await withPage('whatsapp.html', { mode: 'full', auto }, async (page) => {
+    await page.focus(COMPOSE);
+    const box = await page.$eval(COMPOSE, (el) => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
+    await waitForState(page, (i) => !i.tiles.some((t) => holds(t, box)), 2000);
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    const info = await waitForState(page, (i) => i.state.reason === 'unfocus', 1000);
+    assert.ok(info.tiles.some((t) => holds(t, box)), JSON.stringify(info.tiles));
+    assert.equal(area(info.tiles), VIEWPORT.w * VIEWPORT.h);
+  });
+});
+
+test('a newly opened chat uses its own rule on the next frame', async () => {
+  await withPage('whatsapp.html', { chats: { 'Sari Dewi': 'hide' } }, async (page) => {
+    await sleep(300);
+    assert.equal((await curtainInfo(page)).tiles.some((t) => holds(t, MAIN_CENTRE)), false);
+    await page.evaluate(() => {
+      const s = document.querySelector('#main header span[title]');
+      s.setAttribute('title', 'Sari Dewi');
+      s.textContent = 'Sari Dewi';
+    });
+    const info = await waitForState(page, (i) => i.tiles.some((t) => holds(t, MAIN_CENTRE)), 150);
+    assert.equal(info.state.rule, 'hide');
   });
 });
 

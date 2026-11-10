@@ -25,7 +25,8 @@
   let title = null;
   let tiles = [];
   let status = null;
-  let loaded = false, dead = false;
+  let popups = [];
+  let dead = false;
   let frame = 0, retry = 0, blurTimer = 0, trailing = 0, lastScan = 0;
   let curtain = T.curtain.createCurtain(document);
   const tracker = T.lamp.createLampTracker({ win: window, getTiles: () => tiles, onChange: scheduleRender });
@@ -41,9 +42,11 @@
 
   function compute() {
     const state = effectiveState(settings, live, { focused });
-    const rule = chatRule(settings, title);
+    // Share, idle and unfocus cover everything: no per-chat rule and no open holes.
+    const user = state.reason === 'user';
+    const rule = user ? chatRule(settings, liveTitle()) : 'auto';
     const plan = coverPlan({ mode: state.mode, regions, rule, viewport: { w: window.innerWidth, h: window.innerHeight } });
-    const holes = plan.cover.length ? plan.holes.concat(T.holes.collectHoles(document)) : [];
+    const holes = user && plan.cover.length ? plan.holes.concat(popups, T.holes.focusHole(document)) : [];
     const next = T.geometry.tiles({ cover: plan.cover, holes, splits: plan.splits });
     let pill = null;
     if (state.mode === 'full' && state.reason === 'user') {
@@ -59,9 +62,15 @@
     };
   }
 
+  // The open chat's name is read where it is now, so a chat switch uses its own rule on the next frame.
+  function liveTitle() {
+    const el = regions.mainEl;
+    return el && el.isConnected ? currentChatTitle(document, el) : title;
+  }
+
   function render() {
     frame = 0;
-    if (dead || !loaded) return;
+    if (dead) return;
     if (root.dataset.tiraiInstance !== id || !chrome.runtime?.id) return destroy();
     if (!curtain.host.isConnected) curtain = T.curtain.createCurtain(document);
     let view;
@@ -83,13 +92,15 @@
   const sizeWatcher = new ResizeObserver(() => scanSoon());
   let watched = [];
   function scan() {
+    if (dead) return;
     clearTimeout(trailing);
     trailing = 0;
     lastScan = Date.now();
     try {
       regions = findRegions(document);
-      title = currentChatTitle(document);
-    } catch { regions = { ...regions, side: null, main: null, loggedIn: true }; title = null; }
+      title = currentChatTitle(document, regions.mainEl);
+      popups = T.holes.popupHoles(document, [regions.side, regions.main]);
+    } catch { regions = { ...regions, side: null, main: null, loggedIn: true }; title = null; popups = []; }
     const els = [regions.sideEl, regions.mainEl].filter(Boolean);
     if (els.length !== watched.length || els.some((el, i) => el !== watched[i])) {
       sizeWatcher.disconnect();
@@ -105,10 +116,9 @@
     else trailing = setTimeout(scan, wait);
   }
 
-  const bodyWatcher = new MutationObserver(scanSoon);
-  // Menus and dialogs are often shown by toggling a style or class instead of adding a node.
-  bodyWatcher.observe(document.body, { childList: true, subtree: true, attributes: true,
-    attributeFilter: ['style', 'class', 'hidden', 'aria-hidden'] });
+  // Render at once (cheap: the title is read live) and rescan regions and popups on the throttle.
+  const bodyWatcher = new MutationObserver(() => { scheduleRender(); scanSoon(); });
+  bodyWatcher.observe(document.body, { childList: true, subtree: true });
   // Fail closed: notice at once when our host is removed or a newer instance takes over.
   const rootWatcher = new MutationObserver(scheduleRender);
   rootWatcher.observe(root, { childList: true, attributes: true, attributeFilter: ['data-tirai-instance'] });
@@ -119,9 +129,10 @@
     clearTimeout(blurTimer);
     blurTimer = setTimeout(() => setFocused(false), BLUR_DEBOUNCE_MS);
   });
-  listen(window, 'resize', () => { scheduleRender(); scanSoon(); });
+  listen(window, 'resize', scan);
   listen(document, 'focusin', scheduleRender, true);
   listen(document, 'focusout', scheduleRender, true);
+  listen(document, 'scroll', scheduleRender, true);
 
   const watchdog = setInterval(scheduleRender, WATCHDOG_MS);
 
@@ -161,14 +172,14 @@
     } catch { /* the extension context is already gone */ }
   }
 
-  // Start from the stored state. A failed read keeps the defaults, which cover the chat list.
-  const read = (area, keys) => chrome.storage[area].get(keys).catch(() => ({}));
+  // Cover from the first frame with the defaults, then follow the stored state. A failed read keeps the defaults.
+  scan();
+  const read = (area, keys) => Promise.resolve().then(() => chrome.storage[area].get(keys)).catch(() => ({}));
   Promise.all([read('local', 'settings'), read('session', ['live', 'shortcuts'])]).then(([local, session]) => {
+    if (dead) return;
     if (local.settings) settings = normalize(local.settings);
     if (session.live) live = { ...DEFAULT_LIVE, ...session.live };
     if (session.shortcuts) shortcuts = session.shortcuts;
-  }).finally(() => {
-    loaded = true;
-    scan();
+    scheduleRender();
   });
 })();
