@@ -36,8 +36,11 @@
   "switchUnfocusHelp": { "message": "Berguna saat Anda presentasi dari aplikasi Zoom atau Teams." },
   "switchIdle": { "message": "Samarkan saat komputer ditinggal" },
   "switchIdleHelp": { "message": "Setelah $SECONDS$ detik tanpa aktivitas.", "placeholders": { "seconds": { "content": "$1" } } },
-  "shortcutsLine": { "message": "$FULL$ Penuh atau Normal · $OFF$ mati atau nyala", "placeholders": { "full": { "content": "$1" }, "off": { "content": "$2" } } },
   "shortcutUnset": { "message": "belum diatur" },
   "editShortcuts": { "message": "Ubah pintasan" },
-  "openOptions": { "message": "Pengaturan" }
+  "openOptions": { "message": "Pengaturan" },
+  "statusUnfocus": { "message": "WhatsApp Web disamarkan selama jendelanya tidak aktif" },
+  "statusIdle": { "message": "WhatsApp Web disamarkan selama komputer ditinggal" },
+  "shortcutFullLabel": { "message": "Normal atau Penuh" },
+  "shortcutOffLabel": { "message": "Matikan atau nyalakan" }
 }

@@ -1,6 +1,6 @@
 const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
-const { launch, openFixture, waitForState, shot } = require('./harness');
+const { launch, openFixture, waitForState, setSettings, setLive, shot } = require('./harness');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function until(fn, timeout = 3000) {
@@ -24,6 +24,24 @@ async function openPopup(browser, extensionId, tabId) {
   await page.waitForSelector('#status:not(:empty)');
   return page;
 }
+
+// 360 wide, nothing scrolls sideways and no text is clipped.
+async function assertFits(popup) {
+  await popup.setViewport({ width: 360, height: 800 });
+  const r = await popup.evaluate(() => ({
+    scroll: document.documentElement.scrollWidth,
+    clipped: [...document.querySelectorAll('label, legend, button, dt, kbd, h1, p')]
+      .filter((e) => e.scrollWidth > e.clientWidth).map((e) => e.id || e.textContent.slice(0, 30)),
+  }));
+  assert.ok(r.scroll <= 360, 'scrollWidth ' + r.scroll);
+  assert.deepEqual(r.clipped, []);
+}
+
+const tabIds = (worker) => worker.evaluate(async () => (await chrome.tabs.query({})).map((t) => t.id));
+const statusOf = async (browser, extensionId, tabId) => {
+  const p = await openPopup(browser, extensionId, tabId);
+  try { return await p.$eval('#status', (e) => e.textContent); } finally { await p.close(); }
+};
 
 async function suite(lang, shotName) {
   const { browser, extensionId, worker } = await launch({ args: lang ? ['--lang=' + lang] : [] });
@@ -86,17 +104,27 @@ test.describe('popup', () => {
     assert.deepEqual(bad, []);
   });
 
-  test('layout fits 360px wide with no horizontal scroll', async () => {
-    const { popup } = ctx;
-    const m = await popup.evaluate(() => ({ w: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }));
-    assert.ok(m.w <= Math.max(m.cw, 360), JSON.stringify(m));
+  test('layout fits 360px wide with nothing clipped', async () => {
+    await assertFits(ctx.popup);
+    await ctx.popup.setViewport({ width: 1280, height: 800 });
+  });
+
+  test('shortcuts show a key or the unset text in a kbd', async () => {
+    const keys = await ctx.popup.$$eval('kbd', (k) => k.map((e) => e.textContent));
+    assert.equal(keys.length, 2);
+    assert.ok(keys.every((k) => k.length > 0));
+    // Headless leaves the keys unset, so paint sample keys for a visual check only.
+    await ctx.popup.$$eval('kbd', (k) => { k[0].textContent = 'Alt+Shift+Z'; k[1].textContent = 'Alt+Shift+X'; });
+    await sleep(200);
+    await shot(ctx.popup, 'popup-keys');
   });
 
   test('a non-WhatsApp tab shows the other-tab status and no chat section', async () => {
     const { browser, extensionId, worker } = ctx;
+    const before = await tabIds(worker);
     await openFixture(browser, 'https://example.com/', 'blank.html');
-    // Without host permission the tab's url is hidden, so find it as the tab with no url.
-    const id = await worker.evaluate(async () => (await chrome.tabs.query({})).find((t) => !t.url).id);
+    // Without host permission the tab's url is hidden, so find it as the one new tab.
+    const id = (await tabIds(worker)).find((i) => !before.includes(i));
     const p = await openPopup(browser, extensionId, id);
     assert.match(await p.$eval('#status', (e) => e.textContent), /^Tirai works automatically on WhatsApp Web/);
     assert.equal(await p.$eval('#chat', (e) => e.offsetParent === null), true);
@@ -110,6 +138,49 @@ test.describe('popup', () => {
     await shot(popup, 'popup-dark');
     await popup.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'light' }]);
   });
+
+  test('status names the reason when auto cover is on', async () => {
+    const { browser, extensionId, worker, wa, waId } = ctx;
+    await wa.bringToFront();
+    await setSettings(worker, { auto: { ...(await getSettings(worker)).auto, unfocus: true } });
+    await wa.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await waitForState(wa, (i) => i.state.reason === 'unfocus');
+    assert.equal(await statusOf(browser, extensionId, waId), 'WhatsApp Web is covered while its window is not active');
+    await wa.bringToFront();
+    await wa.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await waitForState(wa, (i) => i.state.reason === 'user');
+
+    await reset(worker, { auto: { idle: true } });
+    await setLive(worker, { idle: 'locked' });
+    await waitForState(wa, (i) => i.state.reason === 'idle');
+    assert.equal(await statusOf(browser, extensionId, waId), 'WhatsApp Web is covered while you are away');
+    await wa.bringToFront();
+    await setLive(worker, { idle: 'active' });
+    await reset(worker);
+  });
+
+  test('status when the page has no Tirai listening', async () => {
+    const { browser, extensionId, worker, wa, waId } = ctx;
+    await wa.bringToFront();
+    // A different instance id makes the running content script destroy itself and drop its message listener,
+    // which is what a tab opened before the extension was installed looks like to the popup.
+    await wa.evaluate(() => { document.documentElement.dataset.tiraiInstance = 'stale'; });
+    await waitForState(wa, (i) => !i.present);
+    assert.match(await statusOf(browser, extensionId, waId), /^Reload WhatsApp Web/);
+  });
+
+  test('status for an unknown layout and for a logged-out page', async () => {
+    const { browser, extensionId, worker } = ctx;
+    for (const [fixture, text] of [['whatsapp-unknown.html', /^WhatsApp's layout was not recognised/], ['whatsapp-qr.html', /^Log in to WhatsApp Web first/]]) {
+      const before = await tabIds(worker);
+      const page = await openFixture(browser, 'https://web.whatsapp.com/', fixture);
+      await waitForState(page, (i) => i.state && i.state.health);
+      const id = (await tabIds(worker)).find((i) => !before.includes(i));
+      assert.match(await statusOf(browser, extensionId, id), text);
+      await page.close();
+    }
+  });
+
 });
 
 test('popup in Indonesian', async () => {
@@ -118,5 +189,6 @@ test('popup in Indonesian', async () => {
     const status = await c.popup.$eval('#status', (e) => e.textContent);
     assert.equal(status, 'Aktif di WhatsApp Web');
     assert.equal(await c.popup.$eval('html', (e) => e.lang.slice(0, 2)), 'id');
+    await assertFits(c.popup);
   } finally { await c.browser.close(); }
 });

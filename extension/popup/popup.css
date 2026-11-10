@@ -15,3 +15,17 @@ fieldset .help { margin-top: 8px; }
 .switches { display: grid; gap: 18px; }
 
 footer .links { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 2px; }
+
+.switch .help { margin-top: 3px; }
+
+.keys { margin: 0; display: grid; gap: 6px; }
+.keys > div { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.keys dt, .keys dd { margin: 0; }
+kbd {
+  padding: 2px 7px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: 12px ui-monospace, SFMono-Regular, Consolas, Menlo, monospace;
+  color: var(--text);
+}

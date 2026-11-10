@@ -49,12 +49,15 @@
       <div class="switch">
         <label for="idle" data-i18n="switchIdle"></label>
         <input type="checkbox" role="switch" id="idle" aria-describedby="idleHelp">
-        <p class="help" id="idleHelp" data-i18n="switchIdleHelp"></p>
+        <p class="help" id="idleHelp"></p>
       </div>
     </section>
 
     <footer>
-      <p class="help" id="shortcuts"></p>
+      <dl class="keys">
+        <div><dt class="help" data-i18n="shortcutFullLabel"></dt><dd><kbd id="keyFull"></kbd></dd></div>
+        <div><dt class="help" data-i18n="shortcutOffLabel"></dt><dd><kbd id="keyOff"></kbd></dd></div>
+      </dl>
       <div class="links">
         <button type="button" class="link" id="editShortcuts" data-i18n="editShortcuts"></button>
         <button type="button" class="link" id="openOptions" data-i18n="openOptions" hidden></button>

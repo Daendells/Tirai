@@ -36,8 +36,11 @@
   "switchUnfocusHelp": { "message": "Useful when you present from the Zoom or Teams app." },
   "switchIdle": { "message": "Cover when I leave the computer" },
   "switchIdleHelp": { "message": "After $SECONDS$ seconds without activity.", "placeholders": { "seconds": { "content": "$1" } } },
-  "shortcutsLine": { "message": "$FULL$ Full or Normal · $OFF$ off or on", "placeholders": { "full": { "content": "$1" }, "off": { "content": "$2" } } },
   "shortcutUnset": { "message": "not set" },
   "editShortcuts": { "message": "Change shortcuts" },
-  "openOptions": { "message": "Settings" }
+  "openOptions": { "message": "Settings" },
+  "statusUnfocus": { "message": "WhatsApp Web is covered while its window is not active" },
+  "statusIdle": { "message": "WhatsApp Web is covered while you are away" },
+  "shortcutFullLabel": { "message": "Normal or Full" },
+  "shortcutOffLabel": { "message": "Turn off or on" }
 }

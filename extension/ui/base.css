@@ -36,6 +36,7 @@ button, label, input { cursor: pointer; }
 
 /* Segmented control: real radios, visually the labels */
 .segments {
+  position: relative;
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;

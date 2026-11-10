@@ -32,6 +32,8 @@
     if (info.health === 'idle') return 'statusLoggedOut';
     const s = info.state || {};
     if (s.reason === 'share') return 'statusShare';
+    if (s.reason === 'unfocus') return 'statusUnfocus';
+    if (s.reason === 'idle') return 'statusIdle';
     if (s.mode === 'off') return 'statusOff';
     return s.mode === 'full' ? 'statusFull' : 'statusActive';
   }
@@ -62,20 +64,28 @@
   // Refresh the shared shortcut keys so the in-page pill follows a rebinding.
   async function renderShortcuts() {
     const keys = {};
-    for (const c of await chrome.commands.getAll()) keys[c.name] = c.shortcut || '';
-    const shortcuts = { toggleFull: keys['toggle-full'] || '', toggleOff: keys['toggle-off'] || '' };
-    await chrome.storage.session.set({ shortcuts });
-    const unset = i18n('shortcutUnset');
-    $('shortcuts').textContent = i18n('shortcutsLine', shortcuts.toggleFull || unset, shortcuts.toggleOff || unset);
+    try {
+      for (const c of await chrome.commands.getAll()) keys[c.name] = c.shortcut || '';
+      await chrome.storage.session.set({ shortcuts: { toggleFull: keys['toggle-full'] || '', toggleOff: keys['toggle-off'] || '' } });
+    } catch { /* show what we have */ }
+    $('keyFull').textContent = keys['toggle-full'] || i18n('shortcutUnset');
+    $('keyOff').textContent = keys['toggle-off'] || i18n('shortcutUnset');
   }
 
-  const save = (next) => chrome.storage.local.set({ settings: normalize(next) });
-  const edit = (fn) => save(fn(structuredClone(settings)));
+  // Edits read storage fresh and run one after another, so quick clicks never overwrite each other.
+  let queue = Promise.resolve();
+  const edit = (fn) => {
+    queue = queue.then(async () => {
+      const current = normalize((await chrome.storage.local.get('settings')).settings);
+      await chrome.storage.local.set({ settings: normalize(fn(current)) });
+    });
+    return queue;
+  };
 
   document.addEventListener('change', (e) => {
     const t = e.target;
     if (t.name === 'mode') edit((s) => ({ ...s, mode: t.value, lastOnMode: t.value === 'off' ? s.lastOnMode : t.value }));
-    else if (t.name === 'rule') save(withChatRule(settings, info.title, t.value));
+    else if (t.name === 'rule') edit((s) => withChatRule(s, info.title, t.value));
     else if (t.id === 'sensitive') edit((s) => ({ ...s, sensitive: { ...s.sensitive, enabled: t.checked } }));
     else if (t.id === 'unfocus') edit((s) => ({ ...s, auto: { ...s.auto, unfocus: t.checked } }));
     else if (t.id === 'idle') edit((s) => ({ ...s, auto: { ...s.auto, idle: t.checked } }));
