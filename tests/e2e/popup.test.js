@@ -93,6 +93,13 @@ test.describe('popup', () => {
     assert.equal(await again.$eval('#unfocus', (e) => e.checked), true);
     assert.equal(await again.$eval('#unfocus', (e) => e.getAttribute('role')), 'switch');
     await again.close();
+    // Turning this on changes the status line about 300 ms later (the WhatsApp tab is not the active window), and the
+    // longer text wraps and moves every switch below it. Wait for that move, then put the setting back and wait for the
+    // layout to return, so the next test never clicks while the page is shifting.
+    const status = () => popup.$eval('#status', (e) => e.textContent);
+    await until(async () => (await status()) === 'WhatsApp Web is covered while its window is not active');
+    await reset(worker);
+    await until(async () => (await status()) === 'Active on WhatsApp Web');
   });
 
   // chrome.permissions.request shows a prompt that automation cannot accept, so the page's own copy of the call is
