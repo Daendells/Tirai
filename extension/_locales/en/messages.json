@@ -1,4 +1,6 @@
 {
   "extName": { "message": "Tirai: privacy curtain for WhatsApp Web" },
-  "extDescription": { "message": "Blurs the WhatsApp Web chats you are not reading, masks ID and bank numbers, and covers everything while you share your screen." }
+  "extDescription": { "message": "Blurs the WhatsApp Web chats you are not reading, masks ID and bank numbers, and covers everything while you share your screen." },
+  "pillFull": { "message": "Full curtain · $SHORTCUT$ to go back", "placeholders": { "shortcut": { "content": "$1" } } },
+  "pillShare": { "message": "Screen sharing detected · everything is covered" }
 }

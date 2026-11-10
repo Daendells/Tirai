@@ -66,15 +66,20 @@
     return out;
   }
 
+  const trimmed = (title) => (typeof title === 'string' ? title.trim() : '');
+
   function chatRule(settings, title) {
-    const v = settings && settings.chats && Object.hasOwn(settings.chats, title) ? settings.chats[title] : null;
+    const key = trimmed(title);
+    const v = key && settings && settings.chats && Object.hasOwn(settings.chats, key) ? settings.chats[key] : null;
     return v === 'hide' || v === 'show' ? v : 'auto';
   }
 
   function withChatRule(settings, title, rule) {
+    const key = trimmed(title);
     const chats = { ...settings.chats };
-    if (rule === 'hide' || rule === 'show') chats[title] = rule;
-    else delete chats[title];
+    if (!key) return { ...settings, chats };
+    if (rule === 'hide' || rule === 'show') chats[key] = rule;
+    else delete chats[key];
     return { ...settings, chats };
   }
 

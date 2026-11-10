@@ -1,4 +1,6 @@
 {
   "extName": { "message": "Tirai: tirai privasi untuk WhatsApp Web" },
-  "extDescription": { "message": "Menyamarkan chat WhatsApp Web yang tidak Anda baca, menutupi NIK dan nomor rekening, dan menyamarkan semua saat berbagi layar." }
+  "extDescription": { "message": "Menyamarkan chat WhatsApp Web yang tidak Anda baca, menutupi NIK dan nomor rekening, dan menyamarkan semua saat berbagi layar." },
+  "pillFull": { "message": "Tirai penuh · $SHORTCUT$ untuk kembali", "placeholders": { "shortcut": { "content": "$1" } } },
+  "pillShare": { "message": "Berbagi layar terdeteksi · semua disamarkan" }
 }

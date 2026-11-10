@@ -10,6 +10,9 @@
     return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) };
   }
 
+  // A zero-sized element (display:none, collapsed) is as good as absent.
+  const shown = (el) => { const r = rectOf(el); return r.w > 0 && r.h > 0; };
+
   const titledRows = (root) => [...root.querySelectorAll(ROW)].filter((r) => r.querySelector('span[title]'));
 
   // First ancestor (not the element itself) that is nearly full height and narrower than the window.
@@ -23,7 +26,7 @@
 
   function findMain(doc, win) {
     const byId = doc.getElementById('main');
-    if (byId) return { el: byId, source: 'main' };
+    if (byId && shown(byId)) return { el: byId, source: 'main' };
     for (const box of doc.querySelectorAll('footer [contenteditable="true"]')) {
       const el = tallAncestor(box, win);
       if (el) return { el, source: 'compose' };
@@ -34,11 +37,14 @@
   function findSide(doc, win, main) {
     const mainRect = main.el && rectOf(main.el);
     const side = doc.getElementById('side');
-    if (side) return { el: side, source: 'side' };
+    if (side && shown(side)) return { el: side, source: 'side' };
     const pane = doc.getElementById('pane-side');
-    if (pane) return { el: tallAncestor(pane, win) || pane, source: 'pane-side' };
+    if (pane) {
+      const el = tallAncestor(pane, win) || pane;
+      if (shown(el)) return { el, source: 'pane-side' };
+    }
     for (const list of doc.querySelectorAll('[role="grid"],[role="list"]')) {
-      if (titledRows(list).length < 3) continue;
+      if (titledRows(list).length < 3 || !shown(list)) continue;
       const r = rectOf(list);
       if (mainRect && r.x + r.w > mainRect.x + 2) continue;
       return { el: tallAncestor(list, win) || list, source: 'list' };
@@ -52,7 +58,7 @@
     let side = findSide(doc, win, main);
     let sideRect = side.el && rectOf(side.el);
     const mainRect = main.el && rectOf(main.el);
-    if (!side.el && mainRect) {
+    if (!side.el && mainRect && mainRect.x > 0) {
       sideRect = { x: 0, y: 0, w: mainRect.x, h: win.innerHeight };
       side = { el: null, source: 'left-of-main' };
     }

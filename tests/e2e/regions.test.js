@@ -8,9 +8,10 @@ let browser;
 before(async () => { ({ browser } = await launch({ install: false })); });
 after(async () => { if (browser) await browser.close(); });
 
-async function regionsOf(fixture) {
+async function regionsOf(fixture, hideSelector) {
   const page = await openFixture(browser, URL, fixture);
   try {
+    if (hideSelector) await page.addStyleTag({ content: `${hideSelector}{display:none !important}` });
     await loadModules(page, ['content/regions.js']);
     return await page.evaluate(() => {
       const r = Tirai.regions.findRegions();
@@ -65,4 +66,18 @@ test('whatsapp-qr.html finds nothing and is logged out', async () => {
   assert.equal(r.side, null);
   assert.equal(r.main, null);
   assert.equal(r.loggedIn, false);
+});
+
+test('a hidden #side is treated as absent', async () => {
+  const r = await regionsOf('whatsapp.html', '#side');
+  assert.notEqual(r.sideSource, 'side');
+  assert.ok(['list', 'left-of-main', 'pane-side'].includes(r.sideSource), r.sideSource);
+  assert.ok(r.side && r.side.w > 0 && r.side.h > 0, JSON.stringify(r.side));
+});
+
+test('a hidden #main is treated as absent', async () => {
+  const r = await regionsOf('whatsapp.html', '#main');
+  assert.notEqual(r.mainSource, 'main');
+  assert.equal(r.main, null);
+  assert.equal(r.mainSource, null);
 });

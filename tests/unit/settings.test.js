@@ -55,3 +55,14 @@ test('nextMode transitions', () => {
   assert.deepEqual(S.nextMode(m('full', 'normal'), 'toggle-off'), m('off', 'full'));
   assert.deepEqual(S.nextMode(m('off', 'full'), 'toggle-off'), m('full', 'full'));
 });
+
+test('chatRule and withChatRule trim the title', () => {
+  const s = S.normalize({ chats: { 'Budi Santoso': 'hide' } });
+  assert.equal(S.chatRule(s, '  Budi Santoso '), 'hide');
+  assert.equal(S.chatRule(s, ''), 'auto');
+  assert.equal(S.chatRule(s, null), 'auto');
+  assert.deepEqual(S.withChatRule(s, ' Sari Dewi  ', 'show').chats, { 'Budi Santoso': 'hide', 'Sari Dewi': 'show' });
+  assert.deepEqual(S.withChatRule(s, '  Budi Santoso ', 'auto').chats, {});
+  assert.deepEqual(S.withChatRule(s, '   ', 'hide').chats, s.chats);
+  assert.deepEqual(S.withChatRule(s, undefined, 'hide').chats, s.chats);
+});

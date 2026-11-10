@@ -43,7 +43,7 @@ test('content scripts match files list', () => {
   const cs = manifest.content_scripts;
   if (!cs) return;
   assert.deepEqual(cs[0].js, files.CONTENT_JS);
-  assert.deepEqual(cs[0].css, files.CONTENT_CSS);
+  assert.deepEqual(cs[0].css || [], files.CONTENT_CSS);
 });
 
 test('no network APIs or remote URLs', () => {
