@@ -25,10 +25,12 @@
   let title = null;
   let tiles = [];
   let status = null;
-  let popups = [];
+  let popupEls = [];
   let dead = false;
   let frame = 0, retry = 0, blurTimer = 0, trailing = 0, lastScan = 0;
   let curtain = T.curtain.createCurtain(document);
+  // Hides sensitive numbers in the open chat. A change in how many are hidden is repainted into the state.
+  const masker = T.masker.createMasker({ getRoot: () => regions.mainEl || document.body, onChange: () => queueMicrotask(scheduleRender) });
   const tracker = T.lamp.createLampTracker({ win: window, getTiles: () => tiles, onChange: scheduleRender });
 
   // Fail closed: if anything goes wrong while planning, cover the whole window rather than nothing.
@@ -46,7 +48,7 @@
     const user = state.reason === 'user';
     const rule = user ? chatRule(settings, liveTitle()) : 'auto';
     const plan = coverPlan({ mode: state.mode, regions, rule, viewport: { w: window.innerWidth, h: window.innerHeight } });
-    const holes = user && plan.cover.length ? plan.holes.concat(popups, T.holes.focusHole(document)) : [];
+    const holes = user && plan.cover.length ? plan.holes.concat(T.holes.popupRects(popupEls, document, [regions.side, regions.main]), T.holes.focusHole(document)) : [];
     const next = T.geometry.tiles({ cover: plan.cover, holes, splits: plan.splits });
     let pill = null;
     if (state.mode === 'full' && state.reason === 'user') {
@@ -62,6 +64,17 @@
     };
   }
 
+  // Masks run while the curtain is on and sensitive data is enabled. A masker failure never takes the cover down.
+  function syncMasker(mode) {
+    try {
+      if (mode !== 'off' && settings.sensitive.enabled) {
+        masker.setTypes(settings.sensitive.types);
+        masker.start();
+      } else masker.stop();
+      return masker.count();
+    } catch { return 0; }
+  }
+
   // The open chat's name is read where it is now, so a chat switch uses its own rule on the next frame.
   function liveTitle() {
     const el = regions.mainEl;
@@ -75,6 +88,7 @@
     if (!curtain.host.isConnected) curtain = T.curtain.createCurtain(document);
     let view;
     try { view = compute(); } catch { view = fallbackView(); }
+    view.state.masks = syncMasker(view.state.mode);
     tiles = view.tiles;
     status = view.state;
     let drawn = false;
@@ -84,12 +98,16 @@
     if (!drawn && !retry) retry = setTimeout(() => { retry = 0; scheduleRender(); }, REGION_THROTTLE_MS);
   }
 
+  // A hidden tab runs no animation frames, so it renders at once and never shows an old, less covered first frame.
   function scheduleRender() {
-    if (!frame && !dead) frame = requestAnimationFrame(render);
+    if (dead) return;
+    if (document.hidden) { cancelAnimationFrame(frame); render(); } else if (!frame) frame = requestAnimationFrame(render);
   }
 
   // Region detection runs at most once per REGION_THROTTLE_MS: right away after a quiet period, otherwise trailing.
   const sizeWatcher = new ResizeObserver(() => scanSoon());
+  // A popup can close with a class, style or hidden change and no node change, so its own attributes are watched too.
+  const popupWatcher = new MutationObserver(scheduleRender);
   let watched = [];
   function scan() {
     if (dead) return;
@@ -99,8 +117,10 @@
     try {
       regions = findRegions(document);
       title = currentChatTitle(document, regions.mainEl);
-      popups = T.holes.popupHoles(document, [regions.side, regions.main]);
-    } catch { regions = { ...regions, side: null, main: null, loggedIn: true }; title = null; popups = []; }
+      popupEls = T.holes.popupElements(document);
+    } catch { regions = { ...regions, side: null, main: null, loggedIn: true }; title = null; popupEls = []; }
+    popupWatcher.disconnect();
+    for (const el of popupEls) popupWatcher.observe(el, { attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
     const els = [regions.sideEl, regions.mainEl].filter(Boolean);
     if (els.length !== watched.length || els.some((el, i) => el !== watched[i])) {
       sizeWatcher.disconnect();
@@ -133,6 +153,7 @@
   listen(document, 'focusin', scheduleRender, true);
   listen(document, 'focusout', scheduleRender, true);
   listen(document, 'scroll', scheduleRender, true);
+  listen(document, 'visibilitychange', () => { if (!document.hidden) { cancelAnimationFrame(frame); render(); } });
 
   const watchdog = setInterval(scheduleRender, WATCHDOG_MS);
 
@@ -162,9 +183,11 @@
     clearTimeout(trailing);
     clearInterval(watchdog);
     sizeWatcher.disconnect();
+    popupWatcher.disconnect();
     bodyWatcher.disconnect();
     rootWatcher.disconnect();
     tracker.destroy();
+    masker.stop();
     curtain.destroy();
     try {
       chrome.storage.onChanged.removeListener(onStorage);

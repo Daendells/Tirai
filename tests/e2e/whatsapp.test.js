@@ -357,3 +357,83 @@ test('answers status messages', async () => {
     assert.equal(res.state.mode, 'normal');
   });
 });
+
+test('sensitive numbers are masked in normal and the masks follow the settings', async () => {
+  await withPage('whatsapp.html', {}, async (page) => {
+    const info = await waitForState(page, (i) => i.state.masks >= 3, 2000);
+    assert.ok(info.state.masks >= 3, JSON.stringify(info.state));
+    assert.equal(await page.evaluate(() => CSS.highlights.has('tirai-mask')), true);
+    await shot(page, 'wa-masks');
+    await setSettings(worker, { mode: 'off' });
+    const off = await waitForState(page, (i) => i.state.mode === 'off' && i.state.masks === 0, 2000);
+    assert.equal(off.state.masks, 0);
+    assert.equal(await page.evaluate(() => CSS.highlights.has('tirai-mask')), false);
+    await setSettings(worker, { mode: 'normal' });
+    await waitForState(page, (i) => i.state.masks >= 3, 2000);
+    await setSettings(worker, { sensitive: { enabled: false, types: { nik: true, card: true, account: true, otp: true, phone: true, email: false } } });
+    const none = await waitForState(page, (i) => i.state.masks === 0, 2000);
+    assert.equal(none.state.mode, 'normal');
+  });
+});
+
+test('masks are off when sensitive data is disabled from the start', async () => {
+  await withPage('whatsapp.html', { sensitive: { enabled: false } }, async (page) => {
+    await sleep(400);
+    assert.equal((await curtainInfo(page)).state.masks, 0);
+  });
+});
+
+test('a popup hidden by an attribute change closes its hole', async () => {
+  await withPage('whatsapp.html', {}, async (page) => {
+    await page.evaluate(() => {
+      const m = document.createElement('div');
+      m.id = 'real-menu';
+      m.setAttribute('role', 'menu');
+      m.style.cssText = 'position:fixed;left:200px;top:300px;width:180px;height:160px;background:#233138';
+      document.body.append(m);
+    });
+    const menu = { x: 200, y: 300, w: 180, h: 160 };
+    await waitForState(page, (i) => i.tiles.length > 1 && i.tiles.every((t) => !meets(t, menu)), 2000);
+    await page.evaluate(() => { document.getElementById('real-menu').style.display = 'none'; });
+    const closed = await waitForState(page, (i) => i.tiles.length === 1, 300);
+    assert.ok(near(area(closed.tiles), SIDE.w * SIDE.h, SIDE.w * SIDE.h * 0.01));
+  });
+});
+
+test('a hidden tab renders the new state before it is shown again', async () => {
+  await withPage('whatsapp.html', {}, async (page) => {
+    const other = await browser.newPage();
+    try {
+      await sleep(300);
+      assert.equal(await page.evaluate(() => document.hidden), true);
+      await setSettings(worker, { mode: 'full' });
+      await sleep(400);
+      assert.equal((await curtainInfo(page)).state.mode, 'full');
+      await page.bringToFront();
+    } finally {
+      await other.close();
+    }
+  });
+});
+
+test('hovering a mask reveals it in the extension too', async () => {
+  await withPage('whatsapp.html', {}, async (page) => {
+    await waitForState(page, (i) => i.state.masks === 3, 2000);
+    const p = await page.evaluate(() => {
+      const w = document.createTreeWalker(document.getElementById('msgs'), NodeFilter.SHOW_TEXT);
+      for (let n; (n = w.nextNode());) {
+        const i = n.data.indexOf('482913');
+        if (i < 0) continue;
+        const r = document.createRange();
+        r.setStart(n, i);
+        r.setEnd(n, i + 6);
+        const b = r.getBoundingClientRect();
+        return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+      }
+    });
+    await page.mouse.move(p.x, p.y);
+    await waitForState(page, (i) => i.state.masks === 2, 1500);
+    await page.mouse.move(900, 60);
+    await waitForState(page, (i) => i.state.masks === 3, 500);
+  });
+});
