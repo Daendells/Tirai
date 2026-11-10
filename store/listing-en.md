@@ -23,7 +23,7 @@ What you can do with it:
 - Put the same curtain on any other tab, such as a banking page, with "Cover this tab".
 - Use the popup and settings in Indonesian or English.
 
-How it works: Tirai draws a frosted layer above the page instead of restyling WhatsApp's own elements, which change often. If WhatsApp changes its layout, Tirai covers more rather than less.
+How it works: Tirai draws a frosted layer above the page instead of restyling WhatsApp's own elements, which change often. If WhatsApp changes its layout, Tirai covers the whole page and tells you in the Tirai menu.
 
 Privacy: Tirai does not collect or transmit any data. It makes no network requests. Your settings stay in your browser.
 

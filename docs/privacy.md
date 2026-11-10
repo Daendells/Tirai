@@ -21,11 +21,11 @@ Questions or concerns: please open an issue on the project's GitHub repository, 
 
 ## Bahasa Indonesia
 
-Tirai tidak mengumpulkan atau mengirim data apa pun. Tirai tidak melakukan permintaan jaringan, tidak memakai analitik, dan tidak memerlukan akun atau server.
+Tirai tidak mengumpulkan data dan tidak mengirim apa pun lewat internet. Tirai tidak memakai analitik dan tidak memerlukan akun atau server.
 
 Yang disimpan Tirai dan di mana:
 
-- Pengaturan Anda (mode, kekuatan samaran, switch yang aktif) dan nama chat yang Anda beri aturan, misalnya "selalu sembunyikan". Semuanya disimpan di penyimpanan ekstensi pada browser di komputer Anda dan tidak keluar dari sana.
+- Pengaturan Anda (mode, kekuatan samaran, dan pilihan yang Anda nyalakan) serta nama chat yang Anda beri aturan, misalnya "Selalu samarkan". Semuanya disimpan di penyimpanan ekstensi pada browser di komputer Anda dan tidak keluar dari sana.
 - Status sementara selama browser terbuka, misalnya apakah komputer sedang tidak dipakai atau apakah rapat sedang berbagi layar. Status ini disimpan di penyimpanan sesi browser dan dihapus saat browser ditutup.
 
 Yang dibaca Tirai: di web.whatsapp.com, Tirai membaca tata letak halaman dan teks pesan yang terlihat agar bisa menutupi area yang tepat dan menyamarkan nomor seperti NIK, rekening, dan kartu. Prosesnya terjadi di dalam browser Anda. Teks itu tidak disimpan dan tidak dikirim ke mana pun.
@@ -34,4 +34,4 @@ Izin situs rapat (opsional): jika Anda mengaktifkan "Samarkan semua saat saya be
 
 Menutup tab lain: saat Anda memilih "Pasang tirai di tab ini", Tirai hanya berjalan di tab itu sampai halamannya dimuat ulang, memakai izin activeTab dari browser.
 
-Pertanyaan atau keluhan: silakan buka isu di repositori GitHub proyek ini, https://github.com/Daendells/tirai.
+Pertanyaan atau keluhan: silakan buat issue di repositori GitHub proyek ini, https://github.com/Daendells/tirai.

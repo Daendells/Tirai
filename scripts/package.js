@@ -4,7 +4,7 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 
 // Git Bash puts GNU tar first on PATH, which cannot write zip, so use the bsdtar that ships with Windows.
-const TAR = path.join(process.env.SystemRoot || 'C:\Windows', 'System32', 'tar.exe');
+const TAR = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe');
 const ROOT = path.resolve(__dirname, '..');
 const EXT = path.join(ROOT, 'extension');
 const { version } = JSON.parse(fs.readFileSync(path.join(EXT, 'manifest.json'), 'utf8'));
@@ -12,8 +12,8 @@ const zip = path.join(ROOT, 'dist', `tirai-${version}.zip`);
 
 fs.mkdirSync(path.dirname(zip), { recursive: true });
 fs.rmSync(zip, { force: true });
-// bsdtar writes zip with -a on Windows, Linux and macOS use zip. -C / cwd makes manifest.json the root entry.
-if (process.platform === 'win32') execFileSync(TAR, ['-a', '-cf', zip, '-C', EXT, '.'], { stdio: 'inherit' });
+// bsdtar writes zip with -a on Windows, Linux and macOS use zip. Naming the top-level entries (not '.') keeps './' out of the zip paths, so manifest.json is the root entry.
+if (process.platform === 'win32') execFileSync(TAR, ['-a', '-cf', zip, '-C', EXT, ...fs.readdirSync(EXT)], { stdio: 'inherit' });
 else execFileSync('zip', ['-r', '-q', zip, '.'], { cwd: EXT, stdio: 'inherit' });
 
 const [cmd, args] = process.platform === 'win32' ? [TAR, ['-tf', zip]] : ['unzip', ['-Z1', zip]];

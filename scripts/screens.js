@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { launch, openFixture, copyExtension, waitForState } = require('../tests/e2e/harness');
 
+const manifest = require('../extension/manifest.json');
 const OUT = path.resolve(__dirname, '..', 'store', 'screenshots');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const save = (page, name) => page.screenshot({ path: path.join(OUT, name) });
@@ -56,6 +57,9 @@ async function main() {
       await popup.goto(`chrome-extension://${extensionId}/popup/popup.html?tabId=${tabId}`);
       await popup.waitForSelector('#status:not(:empty)');
       await sleep(400);
+      // Headless Chrome leaves the shortcuts unset, so show the keys the manifest suggests. Only the screenshot is touched.
+      const keys = Object.values(manifest.commands).map((c) => c.suggested_key.default);
+      await popup.$$eval('kbd', (els, keys) => els.forEach((e, i) => { e.textContent = keys[i]; }), keys);
       const shot = await popup.screenshot({ fullPage: true, encoding: 'base64' });
       await popup.close();
       const stage = await browser.newPage();

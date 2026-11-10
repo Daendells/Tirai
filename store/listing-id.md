@@ -12,22 +12,22 @@ Menyamarkan chat WhatsApp Web yang tidak Anda baca, menutupi NIK dan nomor reken
 
 Tirai menjaga chat WhatsApp Web Anda tetap pribadi saat orang lain bisa melihat layar Anda.
 
-Pada mode Normal, daftar chat tertutup tirai buram, dan chat yang sedang Anda buka tetap terbaca. Sebuah lampu baca kecil mengikuti kursor. Arahkan kursor ke satu chat atau satu pesan, dan hanya bagian itu yang terbuka. Mode Penuh menyamarkan seluruh halaman. Satu pintasan (Alt+Shift+Z) berpindah di antara kedua mode.
+Pada mode Normal, daftar chat tertutup tirai buram, dan chat yang sedang Anda buka tetap terbaca. Sebuah lampu baca kecil mengikuti kursor. Arahkan kursor ke satu chat atau satu pesan, dan hanya bagian itu yang terbuka. Mode Penuh menyamarkan seluruh halaman. Tekan Alt+Shift+Z untuk berganti antara kedua mode.
 
 Yang bisa Anda lakukan:
 - Menyamarkan daftar chat atau seluruh halaman, lalu membaca satu baris atau satu pesan dengan lampu baca.
 - Menentukan aturan untuk chat yang sedang dibuka: mengikuti mode, selalu disamarkan, atau selalu ditampilkan.
-- Menutupi angka sensitif di chat yang Anda baca: NIK, nomor rekening, nomor kartu, kode OTP, dan nomor HP. Alamat e-mail bisa ikut ditutupi jika Anda mengaktifkannya. Arahkan kursor ke angka itu sebentar untuk membacanya. Saat disalin, yang tersalin tetap teks aslinya.
-- Menyamarkan semuanya secara otomatis saat rapat di browser berbagi layar (Google Meet, Zoom, Teams, Discord, Slack, Whereby, Jitsi). Fitur ini opsional, dan Tirai baru meminta izinnya saat Anda mengaktifkannya.
+- Menutupi angka sensitif di chat yang Anda baca: NIK, nomor rekening, nomor kartu, kode OTP, dan nomor HP. Alamat email juga bisa ditutupi jika Anda mengaktifkannya. Arahkan kursor ke angka itu sebentar untuk membacanya. Saat disalin, yang tersalin tetap teks aslinya.
+- Menyamarkan semuanya secara otomatis saat Anda berbagi layar dari rapat di browser (Google Meet, Zoom, Teams, Discord, Slack, Whereby, Jitsi). Fitur ini opsional, dan Tirai baru meminta izinnya saat Anda mengaktifkannya.
 - Menyamarkan halaman saat jendela WhatsApp tidak aktif atau saat Anda meninggalkan komputer. Keduanya opsional.
 - Memasang tirai yang sama di tab lain, misalnya halaman bank, lewat "Pasang tirai di tab ini".
 - Memakai popup dan pengaturan dalam Bahasa Indonesia atau Inggris.
 
-Cara kerjanya: Tirai menaruh lapisan buram di atas halaman. Tirai tidak mengubah tampilan elemen milik WhatsApp, yang sering berganti. Jika tata letak WhatsApp berubah, Tirai menutupi lebih banyak, bukan lebih sedikit.
+Cara kerjanya: Tirai menaruh lapisan buram di atas halaman dan tidak mengubah elemen WhatsApp. Jika tata letak WhatsApp berubah, Tirai menutup seluruh halaman dan memberi tahu Anda lewat menu Tirai.
 
-Privasi: Tirai tidak mengumpulkan atau mengirim data apa pun. Tirai tidak melakukan permintaan jaringan. Pengaturan Anda tetap di browser.
+Privasi: Tirai tidak mengumpulkan data dan tidak mengirim apa pun lewat internet. Pengaturan Anda tersimpan di browser ini saja.
 
-Batasan: Tirai hanya menyembunyikan tampilan di layar. Tirai tidak melindungi dari orang yang sedang memakai komputer Anda. Untuk itu, gunakan fitur Kunci Aplikasi bawaan WhatsApp. Tirai tidak berlaku untuk aplikasi WhatsApp Desktop. Pendeteksi angka bisa terlewat pada beberapa kasus, dan hasil pengukurannya dipublikasikan di repositori proyek.
+Batasan: Tirai hanya menyembunyikan tampilan di layar. Tirai tidak melindungi dari orang yang bisa memakai komputer Anda. Untuk mengunci WhatsApp dengan kata sandi, pakai fitur Kunci aplikasi bawaan WhatsApp. Tirai tidak berlaku untuk aplikasi WhatsApp Desktop. Pendeteksi angka bisa melewatkan beberapa format. Hasil pengukurannya ada di repositori proyek.
 
 Tirai tidak berafiliasi dengan WhatsApp atau Meta.
 
@@ -35,7 +35,7 @@ Kode sumber (lisensi MIT): https://github.com/Daendells/tirai
 
 ## Tujuan tunggal
 
-Tirai punya satu tujuan: menjaga chat WhatsApp Web dan isi halaman sensitif lainnya tetap tersembunyi dari orang yang bisa melihat layar. Semua fiturnya (tirai, lampu baca, penutup angka, dan penyamaran otomatis saat berbagi layar, saat komputer tidak dipakai, atau saat Anda pergi) melayani tujuan itu.
+Tirai punya satu tujuan: menjaga chat WhatsApp Web dan isi halaman sensitif lainnya tetap tersembunyi dari orang yang bisa melihat layar. Semua fiturnya (tirai, lampu baca, penutup angka, dan penyamaran otomatis saat berbagi layar, saat jendela WhatsApp tidak aktif, atau saat komputer ditinggal) melayani tujuan itu.
 
 ## Alasan setiap izin
 

@@ -22,7 +22,7 @@ Tirai (Indonesian for "curtain") is a Chrome and Edge extension that hides your 
 
 ## How it works
 
-Other WhatsApp blur extensions restyle WhatsApp's own elements, and those elements have generated class names that change with every WhatsApp release. Tirai does not touch them. It finds the rectangles of two regions, the chat list and the open chat, and draws a frosted overlay above the page in its own shadow DOM. The overlay does not take clicks, so typing, scrolling, menus and dialogs keep working. If WhatsApp changes its layout, Tirai covers more rather than less. When it cannot find the chat list on a page that is clearly logged in, it covers the whole page and shows a warning in the popup.
+Other WhatsApp blur extensions restyle WhatsApp's own elements, and those elements have generated class names that change with every WhatsApp release. Tirai does not touch them. It finds the rectangles of two regions, the chat list and the open chat, and draws a frosted overlay above the page in its own shadow DOM. The overlay does not take clicks, so typing, scrolling, menus and dialogs keep working. If WhatsApp changes its layout, Tirai covers more rather than less. When it cannot find the chat list on a page that is clearly logged in, it covers the whole page and shows a warning in the Tirai menu (the popup).
 
 - **Reading lamp.** The overlay is split into tiles at the column edges. Each tile has a soft-edged clear band that snaps to the row or message under the cursor.
 - **Masks.** Sensitive numbers are found in the visible text and painted with the CSS Custom Highlight API. The page is not changed, so nothing is rewritten and copy and paste still work. The bar is solid, because blurred digits can sometimes be recovered from a recording.

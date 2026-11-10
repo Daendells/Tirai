@@ -38,7 +38,9 @@ async function launch({ extensionDir = EXT_DIR, install = true, args = [] } = {}
     pipe: true,
     enableExtensions: install ? [extensionDir] : true,
     defaultViewport: { width: 1280, height: 800 },
-    args,
+    // GitHub's Ubuntu 23.10+ runners restrict unprivileged user namespaces through AppArmor, which stops Chrome's
+    // sandbox from starting, so CI runs Chrome without it. Local runs keep the sandbox.
+    args: [...(process.env.CI ? ['--no-sandbox'] : []), ...args],
   });
   if (!install) return { browser, extensionId: null, worker: null };
   try {
