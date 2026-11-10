@@ -1,4 +1,5 @@
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const puppeteer = require('puppeteer-core');
 
@@ -14,6 +15,20 @@ function chromePath() {
   return process.platform === 'win32'
     ? 'C:/Program Files/Google/Chrome/Application/chrome.exe'
     : '/usr/bin/google-chrome';
+}
+
+// A temp copy of the extension whose manifest also holds the given origins as granted host permissions, because
+// automation cannot accept the permission prompt. They are moved out of optional_host_permissions so the two lists
+// never overlap. Remove the folder with fs.rmSync when the test is done.
+function copyExtension({ hostPermissions = [] } = {}) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tirai-ext-'));
+  fs.cpSync(EXT_DIR, dir, { recursive: true });
+  const file = path.join(dir, 'manifest.json');
+  const manifest = JSON.parse(fs.readFileSync(file, 'utf8'));
+  manifest.host_permissions = [...manifest.host_permissions, ...hostPermissions];
+  manifest.optional_host_permissions = (manifest.optional_host_permissions || []).filter((o) => !hostPermissions.includes(o));
+  fs.writeFileSync(file, JSON.stringify(manifest, null, 2));
+  return dir;
 }
 
 async function launch({ extensionDir = EXT_DIR, install = true, args = [] } = {}) {
@@ -97,4 +112,4 @@ async function shot(page, name) {
   await page.screenshot({ path: path.join(ARTIFACTS, name + '.png') });
 }
 
-module.exports = { EXT_DIR, launch, openFixture, loadModules, setSettings, setLive, curtainInfo, waitForState, shot };
+module.exports = { EXT_DIR, copyExtension, launch, openFixture, loadModules, setSettings, setLive, curtainInfo, waitForState, shot };

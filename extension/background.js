@@ -1,16 +1,30 @@
-importScripts('shared/settings.js', 'shared/mode.js', 'shared/files.js');
+importScripts('shared/settings.js', 'shared/mode.js', 'shared/files.js', 'shared/share.js');
 
-chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' });
+const MAX_SHARE_IDS = 20;
+const DEFAULT_LIVE = { sharing: false, idle: 'active', sharingTabs: {} };
 
-async function initSettings() {
+// Every read-modify-write of storage runs through this one queue, so two quick events never overwrite each other.
+let writeQueue = Promise.resolve();
+function serialized(fn) {
+  const run = writeQueue.then(fn);
+  writeQueue = run.catch(() => {});
+  return run;
+}
+
+// For listeners nobody awaits: a failure is logged instead of surfacing as an unhandled rejection.
+const guard = (fn) => (...args) => { Promise.resolve().then(() => fn(...args)).catch((err) => console.error('Tirai:', err)); };
+
+chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' }).catch((err) => console.error('Tirai:', err));
+
+const initSettings = () => serialized(async () => {
   const { settings } = await chrome.storage.local.get('settings');
   await chrome.storage.local.set({ settings: Tirai.settings.normalize(settings) });
-}
+});
 
-async function initLive() {
+const initLive = () => serialized(async () => {
   const { live } = await chrome.storage.session.get('live');
-  if (!live) await chrome.storage.session.set({ live: { sharing: false, idle: 'active', sharingTabs: {} } });
-}
+  if (!live) await chrome.storage.session.set({ live: DEFAULT_LIVE });
+});
 
 async function getSettings() {
   const { settings } = await chrome.storage.local.get('settings');
@@ -22,8 +36,10 @@ async function handleCommand(command, tab) {
     if (tab && typeof togglePageCurtain === 'function') await togglePageCurtain(tab.id);
     return;
   }
-  const settings = await getSettings();
-  await chrome.storage.local.set({ settings: { ...settings, ...Tirai.settings.nextMode(settings, command) } });
+  await serialized(async () => {
+    const settings = await getSettings();
+    await chrome.storage.local.set({ settings: { ...settings, ...Tirai.settings.nextMode(settings, command) } });
+  });
 }
 
 async function publishShortcuts() {
@@ -42,10 +58,37 @@ async function updateBadge(settings) {
   await chrome.action.setTitle({ title: chrome.i18n.getMessage('titleMode_' + mode) });
 }
 
-async function onIdleState(state) {
+const onIdleState = (state) => serialized(async () => {
   const { live } = await chrome.storage.session.get('live');
-  await chrome.storage.session.set({ live: { sharing: false, sharingTabs: {}, ...live, idle: state } });
+  await chrome.storage.session.set({ live: { ...DEFAULT_LIVE, ...live, idle: state } });
+});
+
+// Changes the list of share ids for one tab and recomputes live.sharing from all tabs.
+function updateShareTab(tabId, change) {
+  return serialized(async () => {
+    const { live } = await chrome.storage.session.get('live');
+    const base = { ...DEFAULT_LIVE, ...live };
+    const ids = change(base.sharingTabs[tabId] || []);
+    if (!ids.length && !(tabId in base.sharingTabs)) return;
+    const sharingTabs = { ...base.sharingTabs, [tabId]: ids };
+    if (!ids.length) delete sharingTabs[tabId];
+    const sharing = Object.values(sharingTabs).some((list) => list.length > 0);
+    await chrome.storage.session.set({ live: { ...base, sharingTabs, sharing } });
+  });
 }
+
+function onShareMessage(msg, sender) {
+  const tabId = sender && sender.tab && sender.tab.id;
+  const ok = msg && msg.type === 'share' && typeof msg.active === 'boolean' && typeof msg.id === 'string'
+    && msg.id.length > 0 && msg.id.length <= 100 && Number.isInteger(tabId);
+  if (!ok) return Promise.resolve();
+  return updateShareTab(tabId, (ids) => {
+    if (!msg.active) return ids.filter((id) => id !== msg.id);
+    return ids.includes(msg.id) || ids.length >= MAX_SHARE_IDS ? ids : [...ids, msg.id];
+  });
+}
+
+const clearShareTab = (tabId) => updateShareTab(tabId, () => []);
 
 async function applySettings(settings) {
   const s = Tirai.settings.normalize(settings);
@@ -67,16 +110,25 @@ async function start() {
   await initSettings();
   await publishShortcuts();
   await applySettings(await getSettings());
+  await serialized(async () => Tirai.share.reconcile(await getSettings()));
 }
 
-chrome.runtime.onInstalled.addListener(async ({ reason }) => {
-  await start();
-  if (reason === 'install' || reason === 'update') await injectIntoOpenWhatsAppTabs();
-});
-chrome.runtime.onStartup.addListener(start);
-chrome.commands.onCommand.addListener(handleCommand);
-chrome.idle.onStateChanged.addListener(onIdleState);
-chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'local' && changes.settings) applySettings(changes.settings.newValue);
-});
-initLive();
+async function onInstalled({ reason }) {
+  try {
+    await start();
+  } finally {
+    if (reason === 'install' || reason === 'update') await injectIntoOpenWhatsAppTabs();
+  }
+}
+
+chrome.runtime.onInstalled.addListener(guard(onInstalled));
+chrome.runtime.onStartup.addListener(guard(start));
+chrome.commands.onCommand.addListener(guard(handleCommand));
+chrome.idle.onStateChanged.addListener(guard(onIdleState));
+chrome.storage.onChanged.addListener(guard(async (changes, area) => {
+  if (area === 'local' && changes.settings) await applySettings(changes.settings.newValue);
+}));
+chrome.runtime.onMessage.addListener((msg, sender) => { if (msg && msg.type === 'share') guard(onShareMessage)(msg, sender); });
+chrome.tabs.onRemoved.addListener(guard(clearShareTab));
+chrome.tabs.onUpdated.addListener(guard(async (tabId, change) => { if (change.status === 'loading') await clearShareTab(tabId); }));
+guard(initLive)();

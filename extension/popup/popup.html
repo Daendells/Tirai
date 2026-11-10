@@ -42,6 +42,12 @@
         <p class="help" id="sensitiveHelp" data-i18n="switchSensitiveHelp"></p>
       </div>
       <div class="switch">
+        <label for="share" data-i18n="switchShare"></label>
+        <input type="checkbox" role="switch" id="share" aria-describedby="shareHelp">
+        <p class="help" id="shareHelp" data-i18n="switchShareHelp"></p>
+        <p class="help denied" id="shareDenied" role="alert" data-i18n="switchShareDenied" hidden></p>
+      </div>
+      <div class="switch">
         <label for="unfocus" data-i18n="switchUnfocus"></label>
         <input type="checkbox" role="switch" id="unfocus" aria-describedby="unfocusHelp">
         <p class="help" id="unfocusHelp" data-i18n="switchUnfocusHelp"></p>
@@ -65,6 +71,7 @@
     </footer>
   </main>
   <script src="../shared/settings.js"></script>
+  <script src="../shared/share.js"></script>
   <script src="../shared/ui.js"></script>
   <script src="popup.js"></script>
 </body>

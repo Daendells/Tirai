@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Meeting</title>
+<style>html,body{margin:0;font:16px Arial,sans-serif;background:#fff;color:#111}body{padding:24px}button{font:inherit;padding:8px 14px;margin-right:8px}</style></head>
+<body>
+<p>Ruang rapat uji. Halaman ini hanya meniru tombol berbagi layar.</p>
+<canvas id="screen" width="320" height="180"></canvas>
+<p><button id="share" type="button">Share screen</button><button id="stop" type="button">Stop sharing</button></p>
+<p id="result" role="status"></p>
+<script>
+  window.stream = null;
+  document.getElementById('share').addEventListener('click', async () => {
+    const out = document.getElementById('result');
+    try {
+      window.stream = await navigator.mediaDevices.getDisplayMedia({ preferCurrentTab: true, video: true });
+      out.textContent = 'sharing';
+    } catch (e) {
+      out.textContent = 'failed ' + e.name;
+    }
+  });
+  document.getElementById('stop').addEventListener('click', () => {
+    if (window.stream) window.stream.getTracks().forEach((t) => t.stop());
+  });
+</script>
+</body></html>

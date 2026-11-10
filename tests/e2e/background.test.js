@@ -93,6 +93,62 @@ test.describe('commands, badge, idle', () => {
     await worker.evaluate(() => onIdleState('active'));
     await waitForState(page, (i) => i.state.reason !== 'idle');
   });
+
+  test('20 toggle-full commands fired together end where 20 toggles would', async () => {
+    await reset(worker);
+    await worker.evaluate((id) => Promise.all(Array.from({ length: 20 },
+      () => handleCommand('toggle-full', { id, url: 'https://web.whatsapp.com/' }))), tabId);
+    const s = await getSettings(worker);
+    assert.equal(s.mode, 'normal');
+    assert.equal(s.lastOnMode, 'normal');
+    await worker.evaluate((id) => Promise.all(Array.from({ length: 7 },
+      () => handleCommand('toggle-full', { id, url: 'https://web.whatsapp.com/' }))), tabId);
+    assert.equal((await getSettings(worker)).mode, 'full');
+    await reset(worker);
+  });
+
+  test('share messages from two tabs and an idle change all survive in live', async () => {
+    await reset(worker);
+    await worker.evaluate(() => Promise.all([
+      onShareMessage({ type: 'share', active: true, id: 'a' }, { tab: { id: 101 } }),
+      onShareMessage({ type: 'share', active: true, id: 'b' }, { tab: { id: 102 } }),
+      onIdleState('locked'),
+      onShareMessage({ type: 'share', active: true, id: 'c' }, { tab: { id: 101 } }),
+    ]));
+    const live = () => worker.evaluate(async () => (await chrome.storage.session.get('live')).live);
+    assert.deepEqual(await live(), { sharing: true, idle: 'locked', sharingTabs: { 101: ['a', 'c'], 102: ['b'] } });
+    await worker.evaluate(() => Promise.all([
+      onShareMessage({ type: 'share', active: false, id: 'a' }, { tab: { id: 101 } }),
+      onShareMessage({ type: 'share', active: false, id: 'c' }, { tab: { id: 101 } }),
+      clearShareTab(102),
+    ]));
+    assert.deepEqual(await live(), { sharing: false, idle: 'locked', sharingTabs: {} });
+    await reset(worker);
+  });
+
+  test('share messages that are malformed or have no tab are ignored', async () => {
+    await reset(worker);
+    await worker.evaluate(() => Promise.all([
+      onShareMessage({ type: 'share', active: 'yes', id: 'a' }, { tab: { id: 1 } }),
+      onShareMessage({ type: 'share', active: true, id: 5 }, { tab: { id: 1 } }),
+      onShareMessage({ type: 'share', active: true, id: 'a' }, {}),
+      onShareMessage(null, { tab: { id: 1 } }),
+    ]));
+    const live = await worker.evaluate(async () => (await chrome.storage.session.get('live')).live);
+    assert.deepEqual(live, { sharing: false, idle: 'active', sharingTabs: {} });
+  });
+
+  test('install still injects into open WhatsApp tabs when an earlier startup step throws', async () => {
+    const calls = await worker.evaluate(async () => {
+      const real = { initSettings, injectIntoOpenWhatsAppTabs };
+      let n = 0;
+      globalThis.initSettings = async () => { throw new Error('boom'); };
+      globalThis.injectIntoOpenWhatsAppTabs = async () => { n++; };
+      try { await onInstalled({ reason: 'update' }).catch(() => {}); } finally { Object.assign(globalThis, real); }
+      return n;
+    });
+    assert.equal(calls, 1);
+  });
 });
 
 test('injects into an already open tab on install', async () => {

@@ -56,6 +56,7 @@
     }
 
     $('sensitive').checked = settings.sensitive.enabled;
+    $('share').checked = settings.auto.share;
     $('unfocus').checked = settings.auto.unfocus;
     $('idle').checked = settings.auto.idle;
     set($('idleHelp'), 'switchIdleHelp', [settings.auto.idleSeconds]);
@@ -89,6 +90,21 @@
     else if (t.id === 'sensitive') edit((s) => ({ ...s, sensitive: { ...s.sensitive, enabled: t.checked } }));
     else if (t.id === 'unfocus') edit((s) => ({ ...s, auto: { ...s.auto, unfocus: t.checked } }));
     else if (t.id === 'idle') edit((s) => ({ ...s, auto: { ...s.auto, idle: t.checked } }));
+  });
+  // The permission prompt needs the click's user gesture, so enable() is called right here, before any await.
+  $('share').addEventListener('click', async (e) => {
+    const box = e.currentTarget;
+    const want = box.checked;
+    box.disabled = true;
+    let ok = false;
+    try {
+      if (want) ok = await Tirai.share.enable();
+      else { await Tirai.share.disable(); ok = true; }
+    } catch { /* treated like a refusal below */ }
+    box.disabled = false;
+    if (!ok) box.checked = !want;
+    $('shareDenied').hidden = ok;
+    box.setAttribute('aria-describedby', ok ? 'shareHelp' : 'shareHelp shareDenied');
   });
   $('editShortcuts').addEventListener('click', () => chrome.tabs.create({ url: 'chrome://extensions/shortcuts' }));
   $('openOptions').addEventListener('click', () => chrome.runtime.openOptionsPage());

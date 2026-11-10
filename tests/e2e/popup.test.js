@@ -95,6 +95,44 @@ test.describe('popup', () => {
     await again.close();
   });
 
+  // chrome.permissions.request shows a prompt that automation cannot accept, so the page's own copy of the call is
+  // replaced with a stub that answers for the user. Registering the scripts and saving the setting stay real.
+  test('share switch: a refused permission puts it back and says why', async () => {
+    const { popup, worker } = ctx;
+    assert.equal(await popup.$eval('#share', (e) => e.checked), false);
+    assert.equal(await popup.$eval('#share', (e) => e.getAttribute('role')), 'switch');
+    assert.equal(await popup.$eval('label[for=share]', (e) => e.textContent), 'Cover everything while I share my screen');
+    assert.match(await popup.$eval('#shareHelp', (e) => e.textContent), /^Works with Google Meet, Zoom, Teams/);
+    assert.equal(await popup.$eval('#shareHelp', (e) => e.offsetParent !== null), true);
+    assert.equal(await popup.$eval('#shareDenied', (e) => e.hidden), true);
+    await popup.evaluate(() => { chrome.permissions.request = async () => false; });
+    await popup.click('#share');
+    await popup.waitForFunction(() => !document.getElementById('shareDenied').hidden);
+    assert.equal(await popup.$eval('#shareDenied', (e) => e.textContent), 'Permission was not given, so this stays off.');
+    assert.equal(await popup.$eval('#share', (e) => e.checked), false);
+    assert.equal(await popup.$eval('#share', (e) => e.disabled), false);
+    assert.match(await popup.$eval('#share', (e) => e.getAttribute('aria-describedby')), /shareDenied/);
+    assert.equal((await getSettings(worker)).auto.share, false);
+    assert.deepEqual(await worker.evaluate(() => chrome.scripting.getRegisteredContentScripts()), []);
+    await shot(popup, 'popup-share-denied');
+  });
+
+  test('share switch: a granted permission turns it on, and clicking again turns it off', async () => {
+    const { popup, worker } = ctx;
+    await popup.evaluate(() => { chrome.permissions.request = async () => true; });
+    await popup.click('#share');
+    await until(async () => (await getSettings(worker)).auto.share === true);
+    assert.equal(await popup.$eval('#share', (e) => e.checked), true);
+    assert.equal(await popup.$eval('#shareDenied', (e) => e.hidden), true);
+    assert.equal(await popup.$eval('#share', (e) => e.getAttribute('aria-describedby')), 'shareHelp');
+    const ids = await worker.evaluate(async () => (await chrome.scripting.getRegisteredContentScripts()).map((s) => s.id));
+    assert.deepEqual(ids.sort(), ['tirai-share-hook', 'tirai-share-relay']);
+    await popup.click('#share');
+    await until(async () => (await getSettings(worker)).auto.share === false);
+    assert.equal(await popup.$eval('#share', (e) => e.checked), false);
+    assert.deepEqual(await worker.evaluate(() => chrome.scripting.getRegisteredContentScripts()), []);
+  });
+
   test('every input has a label and every button has a name', async () => {
     const { popup } = ctx;
     const bad = await popup.evaluate(() => [
