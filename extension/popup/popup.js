@@ -76,10 +76,10 @@
   // Edits read storage fresh and run one after another, so quick clicks never overwrite each other.
   let queue = Promise.resolve();
   const edit = (fn) => {
-    queue = queue.then(async () => {
+    queue = queue.then(() => Tirai.settings.withLock(async () => {
       const current = normalize((await chrome.storage.local.get('settings')).settings);
       await chrome.storage.local.set({ settings: normalize(fn(current)) });
-    });
+    }));
     return queue;
   };
 
@@ -91,20 +91,25 @@
     else if (t.id === 'unfocus') edit((s) => ({ ...s, auto: { ...s.auto, unfocus: t.checked } }));
     else if (t.id === 'idle') edit((s) => ({ ...s, auto: { ...s.auto, idle: t.checked } }));
   });
-  // The permission prompt needs the click's user gesture, so enable() is called right here, before any await.
+  // The permission prompt needs the click's user gesture, so enable() runs right here, before any await. The switch
+  // keeps focus while the browser asks (it is marked busy, not disabled), and a second click is ignored until it ends.
+  let sharing = false;
   $('share').addEventListener('click', async (e) => {
     const box = e.currentTarget;
-    const want = box.checked;
-    box.disabled = true;
-    let ok = false;
+    if (sharing) { e.preventDefault(); return; }
+    sharing = true;
+    box.setAttribute('aria-busy', 'true');
+    let denied = false;
     try {
-      if (want) ok = await Tirai.share.enable();
-      else { await Tirai.share.disable(); ok = true; }
-    } catch { /* treated like a refusal below */ }
-    box.disabled = false;
-    if (!ok) box.checked = !want;
-    $('shareDenied').hidden = ok;
-    box.setAttribute('aria-describedby', ok ? 'shareHelp' : 'shareHelp shareDenied');
+      if (box.checked) denied = !(await Tirai.share.enable());
+      else await Tirai.share.disable();
+    } catch { /* the stored setting below says where things ended up */ }
+    const stored = await chrome.storage.local.get('settings').catch(() => ({}));
+    box.checked = normalize(stored.settings).auto.share;
+    box.removeAttribute('aria-busy');
+    sharing = false;
+    $('shareDenied').hidden = !denied;
+    box.setAttribute('aria-describedby', denied ? 'shareHelp shareDenied' : 'shareHelp');
   });
   $('editShortcuts').addEventListener('click', () => chrome.tabs.create({ url: 'chrome://extensions/shortcuts' }));
   $('openOptions').addEventListener('click', () => chrome.runtime.openOptionsPage());

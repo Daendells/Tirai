@@ -97,5 +97,12 @@
     return { mode, lastOnMode: last };
   }
 
-  return { MODES, TYPES, MEETING_ORIGINS, DEFAULTS, normalize, chatRule, withChatRule, nextMode };
+  // Every read-modify-write of the stored settings runs inside this lock, in the popup and the background alike,
+  // so two writers never overwrite each other. Without Web Locks (old runtimes, tests) it just runs the function.
+  function withLock(fn) {
+    const locks = globalThis.navigator && globalThis.navigator.locks;
+    return locks ? locks.request('tirai-settings', fn) : fn();
+  }
+
+  return { MODES, TYPES, MEETING_ORIGINS, DEFAULTS, normalize, chatRule, withChatRule, nextMode, withLock };
 });

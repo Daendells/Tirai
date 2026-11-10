@@ -14,8 +14,10 @@ const RELAY = {
 
 // A small stand-in for the chrome.* calls that share.js makes. Like the real API, registering a known id and
 // unregistering an unknown id both throw.
-function fakeChrome({ grant = true, held = true, registered = [], stored = undefined } = {}) {
+// slow makes every storage call take a tick, so two unguarded read-modify-writes would interleave.
+function fakeChrome({ grant = true, held = true, registered = [], stored = undefined, raceOnRegister = false, slow = false } = {}) {
   const state = { requests: [], removals: [], scripts: new Map(registered.map((id) => [id, { id }])), sets: 0, stored };
+  const tick = () => (slow ? new Promise((r) => setTimeout(r, 2)) : Promise.resolve());
   globalThis.chrome = {
     permissions: {
       request: async (p) => { state.requests.push(p); return grant; },
@@ -24,6 +26,11 @@ function fakeChrome({ grant = true, held = true, registered = [], stored = undef
     },
     scripting: {
       registerContentScripts: async (list) => {
+        if (raceOnRegister) {
+          // Someone else registers the same scripts first, so this call fails with a duplicate id.
+          raceOnRegister = false;
+          for (const s of list) state.scripts.set(s.id, s);
+        }
         for (const s of list) {
           if (state.scripts.has(s.id)) throw new Error('Duplicate script ID ' + s.id);
           state.scripts.set(s.id, s);
@@ -37,8 +44,8 @@ function fakeChrome({ grant = true, held = true, registered = [], stored = undef
     },
     storage: {
       local: {
-        get: async () => (state.stored === undefined ? {} : { settings: state.stored }),
-        set: async (o) => { state.sets++; state.stored = o.settings; },
+        get: async () => { const v = state.stored; await tick(); return v === undefined ? {} : { settings: v }; },
+        set: async (o) => { await tick(); state.sets++; state.stored = o.settings; },
       },
     },
   };
@@ -105,8 +112,8 @@ test('reconcile: on with the permission registers the missing scripts', async ()
   assert.equal(s.sets, 0);
 });
 
-test('reconcile: on without the permission turns the setting off', async () => {
-  const s = fakeChrome({ held: false, stored: on() });
+test('reconcile: on without the permission unregisters the scripts and turns the setting off', async () => {
+  const s = fakeChrome({ held: false, stored: on(), registered: ['tirai-share-hook', 'tirai-share-relay'] });
   await share.reconcile(on());
   assert.equal(s.scripts.size, 0);
   assert.equal(s.stored.auto.share, false);
@@ -121,4 +128,58 @@ test('reconcile: off unregisters whatever is registered and leaves the permissio
   assert.equal(s.sets, 0);
   await share.reconcile(undefined);
   assert.equal(s.scripts.size, 0);
+});
+
+test('reconcile with refresh replaces scripts that are already registered', async () => {
+  const s = fakeChrome({ held: true, registered: ['tirai-share-hook', 'tirai-share-relay'] });
+  await share.reconcile(on(), { refresh: true });
+  assert.deepEqual(s.scripts.get('tirai-share-hook'), HOOK);
+  assert.deepEqual(s.scripts.get('tirai-share-relay'), RELAY);
+  await share.reconcile(settings.normalize({}), { refresh: true });
+  assert.equal(s.scripts.size, 0);
+});
+
+test('activate() can run again and again, and does not need a permission request', async () => {
+  const s = fakeChrome({ stored: settings.normalize({ blurPx: 20 }) });
+  await share.activate();
+  await share.activate();
+  assert.deepEqual(s.requests, []);
+  assert.equal(s.scripts.size, 2);
+  assert.deepEqual(s.scripts.get('tirai-share-relay'), RELAY);
+  assert.equal(s.stored.auto.share, true);
+  assert.equal(s.stored.blurPx, 20);
+});
+
+test('a duplicate-id race while registering is tolerated, a real failure is not', async () => {
+  const raced = fakeChrome({ raceOnRegister: true });
+  assert.equal(await share.enable(), true);
+  assert.equal(raced.scripts.size, 2);
+  assert.equal(raced.stored.auto.share, true);
+
+  const broken = fakeChrome();
+  globalThis.chrome.scripting.registerContentScripts = async () => { throw new Error('Invalid match pattern'); };
+  await assert.rejects(share.activate(), /Invalid match pattern/);
+  assert.equal(broken.stored, undefined);
+});
+
+test('a share save and another settings edit at the same time both survive (Web Locks)', async () => {
+  let tail = Promise.resolve(); // a minimal lock manager: one holder at a time
+  const locks = { request: (name, fn) => { const run = tail.then(fn); tail = run.catch(() => {}); return run; } };
+  Object.defineProperty(globalThis, 'navigator', { value: { locks }, configurable: true, writable: true });
+  try {
+    const s = fakeChrome({ stored: settings.normalize({}), slow: true });
+    const edit = () => settings.withLock(async () => {
+      const cur = settings.normalize((await chrome.storage.local.get('settings')).settings);
+      await chrome.storage.local.set({ settings: { ...cur, blurPx: 22 } });
+    });
+    await Promise.all([share.activate(), edit(), edit()]);
+    assert.equal(s.stored.auto.share, true);
+    assert.equal(s.stored.blurPx, 22);
+  } finally {
+    delete globalThis.navigator;
+  }
+});
+
+test('without Web Locks the lock helper just runs the function', async () => {
+  assert.equal(await settings.withLock(async () => 7), 7);
 });

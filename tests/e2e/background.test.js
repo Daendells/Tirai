@@ -138,16 +138,19 @@ test.describe('commands, badge, idle', () => {
     assert.deepEqual(live, { sharing: false, idle: 'active', sharingTabs: {} });
   });
 
+  // publishShortcuts is a function declaration that start() calls, so replacing it on the global really makes
+  // the startup path throw. (initSettings is a const, which a global assignment cannot replace.)
   test('install still injects into open WhatsApp tabs when an earlier startup step throws', async () => {
-    const calls = await worker.evaluate(async () => {
-      const real = { initSettings, injectIntoOpenWhatsAppTabs };
-      let n = 0;
-      globalThis.initSettings = async () => { throw new Error('boom'); };
-      globalThis.injectIntoOpenWhatsAppTabs = async () => { n++; };
-      try { await onInstalled({ reason: 'update' }).catch(() => {}); } finally { Object.assign(globalThis, real); }
-      return n;
+    const result = await worker.evaluate(async () => {
+      const real = { publishShortcuts, injectIntoOpenWhatsAppTabs };
+      let injected = 0;
+      let startupFailed = false;
+      globalThis.publishShortcuts = async () => { throw new Error('boom'); };
+      globalThis.injectIntoOpenWhatsAppTabs = async () => { injected++; };
+      try { await onInstalled({ reason: 'update' }); } catch { startupFailed = true; } finally { Object.assign(globalThis, real); }
+      return { injected, startupFailed };
     });
-    assert.equal(calls, 1);
+    assert.deepEqual(result, { injected: 1, startupFailed: true });
   });
 });
 

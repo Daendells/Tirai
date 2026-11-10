@@ -111,6 +111,7 @@ test.describe('popup', () => {
     assert.equal(await popup.$eval('#shareDenied', (e) => e.textContent), 'Permission was not given, so this stays off.');
     assert.equal(await popup.$eval('#share', (e) => e.checked), false);
     assert.equal(await popup.$eval('#share', (e) => e.disabled), false);
+    assert.equal(await popup.$eval('#share', (e) => e.hasAttribute('aria-busy')), false);
     assert.match(await popup.$eval('#share', (e) => e.getAttribute('aria-describedby')), /shareDenied/);
     assert.equal((await getSettings(worker)).auto.share, false);
     assert.deepEqual(await worker.evaluate(() => chrome.scripting.getRegisteredContentScripts()), []);
@@ -131,6 +132,51 @@ test.describe('popup', () => {
     await until(async () => (await getSettings(worker)).auto.share === false);
     assert.equal(await popup.$eval('#share', (e) => e.checked), false);
     assert.deepEqual(await worker.evaluate(() => chrome.scripting.getRegisteredContentScripts()), []);
+  });
+
+  test('share switch: it keeps focus while the permission prompt is open, and a second click is ignored', async () => {
+    const { popup, worker } = ctx;
+    await popup.evaluate(() => {
+      window.release = null;
+      window.requests = 0;
+      chrome.permissions.request = () => { window.requests++; return new Promise((r) => { window.release = r; }); };
+    });
+    await popup.click('#share');
+    const busy = await popup.evaluate(() => ({
+      focused: document.activeElement.id, busy: document.getElementById('share').getAttribute('aria-busy'),
+      disabled: document.getElementById('share').disabled,
+    }));
+    assert.deepEqual(busy, { focused: 'share', busy: 'true', disabled: false });
+    await popup.click('#share');
+    assert.equal(await popup.evaluate(() => window.requests), 1);
+    await popup.evaluate(() => window.release(false));
+    await popup.waitForFunction(() => !document.getElementById('shareDenied').hidden);
+    assert.equal(await popup.$eval('#share', (e) => e.checked), false);
+    assert.equal(await popup.$eval('#share', (e) => e.hasAttribute('aria-busy')), false);
+    assert.equal((await getSettings(worker)).auto.share, false);
+  });
+
+  test('share switch: turning it off shows no refusal message even when removing the permission fails', async () => {
+    const { popup, worker } = ctx;
+    await popup.evaluate(() => { chrome.permissions.request = async () => true; });
+    await popup.click('#share');
+    await until(async () => (await getSettings(worker)).auto.share === true);
+    await popup.evaluate(() => { chrome.permissions.remove = async () => { throw new Error('required permission'); }; });
+    await popup.click('#share');
+    await until(async () => (await getSettings(worker)).auto.share === false);
+    await popup.waitForFunction(() => !document.getElementById('share').hasAttribute('aria-busy'));
+    assert.equal(await popup.$eval('#share', (e) => e.checked), false);
+    assert.equal(await popup.$eval('#shareDenied', (e) => e.hidden), true);
+    assert.deepEqual(await worker.evaluate(() => chrome.scripting.getRegisteredContentScripts()), []);
+  });
+
+  test('share switch and another switch changed at the same moment both stick', async () => {
+    const { popup, worker } = ctx;
+    await popup.evaluate(() => { chrome.permissions.request = async () => true; chrome.permissions.remove = async () => true; });
+    await popup.evaluate(() => { document.getElementById('idle').click(); document.getElementById('share').click(); });
+    await until(async () => { const a = (await getSettings(worker)).auto; return a.idle === true && a.share === true; });
+    await popup.evaluate(() => { document.getElementById('idle').click(); document.getElementById('share').click(); });
+    await until(async () => { const a = (await getSettings(worker)).auto; return a.idle === false && a.share === false; });
   });
 
   test('every input has a label and every button has a name', async () => {

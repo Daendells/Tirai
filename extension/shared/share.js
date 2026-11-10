@@ -18,9 +18,16 @@
 
   async function register() {
     const all = scripts();
-    const have = await registered(all.map((s) => s.id));
+    const ids = all.map((s) => s.id);
+    const have = await registered(ids);
     const missing = all.filter((s) => !have.includes(s.id));
-    if (missing.length) await chrome.scripting.registerContentScripts(missing);
+    if (!missing.length) return;
+    try {
+      await chrome.scripting.registerContentScripts(missing);
+    } catch (err) {
+      // Another caller registered the same ids between the check and the call: that is fine.
+      if ((await registered(ids)).length !== ids.length) throw err;
+    }
   }
 
   async function unregister() {
@@ -28,18 +35,23 @@
     if (have.length) await chrome.scripting.unregisterContentScripts({ ids: have });
   }
 
-  async function save(value) {
-    const S = settingsApi();
-    const cur = S.normalize((await chrome.storage.local.get('settings')).settings);
+  const save = (value) => settingsApi().withLock(async () => {
+    const cur = settingsApi().normalize((await chrome.storage.local.get('settings')).settings);
     await chrome.storage.local.set({ settings: { ...cur, auto: { ...cur.auto, share: value } } });
-  }
+  });
 
   // Call this straight from a click: the permission prompt needs the user gesture.
-  async function enable() {
-    const granted = await chrome.permissions.request({ origins: settingsApi().MEETING_ORIGINS });
-    if (!granted) return false;
+  const request = () => chrome.permissions.request({ origins: settingsApi().MEETING_ORIGINS });
+
+  // Safe to run any number of times, and from the popup and the background at once.
+  async function activate() {
     await register();
     await save(true);
+  }
+
+  async function enable() {
+    if (!(await request())) return false;
+    await activate();
     return true;
   }
 
@@ -49,12 +61,17 @@
     await chrome.permissions.remove({ origins: settingsApi().MEETING_ORIGINS });
   }
 
-  async function reconcile(settings) {
+  // refresh: replace the registered scripts, so changed matches or files take effect after an update.
+  async function reconcile(settings, { refresh = false } = {}) {
     const on = settingsApi().normalize(settings).auto.share;
     if (!on) return unregister();
-    if (await chrome.permissions.contains({ origins: settingsApi().MEETING_ORIGINS })) return register();
+    if (await chrome.permissions.contains({ origins: settingsApi().MEETING_ORIGINS })) {
+      if (refresh) await unregister();
+      return register();
+    }
+    await unregister();
     return save(false);
   }
 
-  return { enable, disable, reconcile };
+  return { request, activate, enable, disable, reconcile };
 });

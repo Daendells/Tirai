@@ -16,10 +16,10 @@ const guard = (fn) => (...args) => { Promise.resolve().then(() => fn(...args)).c
 
 chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' }).catch((err) => console.error('Tirai:', err));
 
-const initSettings = () => serialized(async () => {
+const initSettings = () => serialized(() => Tirai.settings.withLock(async () => {
   const { settings } = await chrome.storage.local.get('settings');
   await chrome.storage.local.set({ settings: Tirai.settings.normalize(settings) });
-});
+}));
 
 const initLive = () => serialized(async () => {
   const { live } = await chrome.storage.session.get('live');
@@ -36,10 +36,10 @@ async function handleCommand(command, tab) {
     if (tab && typeof togglePageCurtain === 'function') await togglePageCurtain(tab.id);
     return;
   }
-  await serialized(async () => {
+  await serialized(() => Tirai.settings.withLock(async () => {
     const settings = await getSettings();
     await chrome.storage.local.set({ settings: { ...settings, ...Tirai.settings.nextMode(settings, command) } });
-  });
+  }));
 }
 
 async function publishShortcuts() {
@@ -106,16 +106,28 @@ async function injectIntoOpenWhatsAppTabs() {
   }
 }
 
-async function start() {
+// Makes the registered share scripts and the setting match the permission the browser actually holds.
+const reconcileShare = (options) => serialized(async () => Tirai.share.reconcile(await getSettings(), options));
+
+async function start(options) {
   await initSettings();
   await publishShortcuts();
   await applySettings(await getSettings());
-  await serialized(async () => Tirai.share.reconcile(await getSettings()));
+  await reconcileShare(options);
 }
+
+// Granting the meeting sites from the popup can be cut short if the popup closes, so finish the job here. Only when
+// every meeting site is held: one site granted by hand in the browser's site settings is not the switch being turned on.
+const onPermissionsAdded = ({ origins = [] } = {}) => serialized(async () => {
+  const { MEETING_ORIGINS } = Tirai.settings;
+  if (origins.some((o) => MEETING_ORIGINS.includes(o)) && await chrome.permissions.contains({ origins: MEETING_ORIGINS })) {
+    await Tirai.share.activate();
+  }
+});
 
 async function onInstalled({ reason }) {
   try {
-    await start();
+    await start({ refresh: reason === 'update' });
   } finally {
     if (reason === 'install' || reason === 'update') await injectIntoOpenWhatsAppTabs();
   }
@@ -129,6 +141,8 @@ chrome.storage.onChanged.addListener(guard(async (changes, area) => {
   if (area === 'local' && changes.settings) await applySettings(changes.settings.newValue);
 }));
 chrome.runtime.onMessage.addListener((msg, sender) => { if (msg && msg.type === 'share') guard(onShareMessage)(msg, sender); });
+chrome.permissions.onAdded.addListener(guard(onPermissionsAdded));
+chrome.permissions.onRemoved.addListener(guard(() => reconcileShare()));
+// A share ends when the page says so or the tab goes away. Navigation inside the tab proves nothing.
 chrome.tabs.onRemoved.addListener(guard(clearShareTab));
-chrome.tabs.onUpdated.addListener(guard(async (tabId, change) => { if (change.status === 'loading') await clearShareTab(tabId); }));
 guard(initLive)();
