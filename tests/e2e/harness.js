@@ -25,10 +25,14 @@ async function launch({ extensionDir = EXT_DIR, install = true } = {}) {
     defaultViewport: { width: 1280, height: 800 },
   });
   if (!install) return { browser, extensionId: null, worker: null };
-  const target = await browser.waitForTarget(
-    (t) => t.type() === 'service_worker' && t.url().endsWith('/background.js'), { timeout: 10000 });
-  const extensionId = new URL(target.url()).hostname;
-  return { browser, extensionId, worker: await target.worker() };
+  try {
+    const target = await browser.waitForTarget(
+      (t) => t.type() === 'service_worker' && t.url().endsWith('/background.js'), { timeout: 10000 });
+    return { browser, extensionId: new URL(target.url()).hostname, worker: await target.worker() };
+  } catch (err) {
+    await browser.close();
+    throw err;
+  }
 }
 
 async function openFixture(browser, url, fixtureFile) {
