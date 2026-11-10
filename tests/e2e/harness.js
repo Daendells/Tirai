@@ -112,4 +112,4 @@ async function shot(page, name) {
   await page.screenshot({ path: path.join(ARTIFACTS, name + '.png') });
 }
 
-module.exports = { EXT_DIR, copyExtension, launch, openFixture, loadModules, setSettings, setLive, curtainInfo, waitForState, shot };
+module.exports = { EXT_DIR, chromePath, copyExtension, launch, openFixture, loadModules, setSettings, setLive, curtainInfo, waitForState, shot };

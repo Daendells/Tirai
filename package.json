@@ -7,7 +7,10 @@
   "scripts": {
     "test": "node --test tests/unit && node eval/run.js dev --check",
     "test:e2e": "node --test --test-concurrency=1 tests/e2e",
-    "eval": "node eval/run.js"
+    "eval": "node eval/run.js",
+    "package": "node scripts/package.js",
+    "icons": "node scripts/icons.js",
+    "screens": "node scripts/screens.js"
   },
   "devDependencies": {
     "puppeteer-core": "24.43.1"
