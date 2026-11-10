@@ -1,0 +1,60 @@
+{
+  "perType": {
+    "card": {
+      "tp": 30,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    "email": {
+      "tp": 11,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    "nik": {
+      "tp": 33,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    "otp": {
+      "tp": 47,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.9791666666666666,
+      "recall": 1,
+      "f1": 0.9894736842105264
+    },
+    "account": {
+      "tp": 44,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    "phone": {
+      "tp": 39,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    }
+  },
+  "micro": {
+    "tp": 204,
+    "fp": 1,
+    "fn": 0,
+    "precision": 0.9951219512195122,
+    "recall": 1,
+    "f1": 0.9975550122249389
+  }
+}
