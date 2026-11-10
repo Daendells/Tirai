@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>WhatsApp</title>
+<style>
+html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;font:14px/1.3 Arial,Helvetica,sans-serif;background:#111b21;color:#e9edef}
+*{box-sizing:border-box}
+#app{display:flex;width:100vw;height:100vh}
+#rail{flex:0 0 64px;width:64px;background:#202c33}
+.side{flex:0 0 420px;width:420px;display:flex;flex-direction:column;background:#111b21;border-right:1px solid #222d34}
+#top{flex:0 0 64px;display:flex;align-items:center;padding:0 16px;font-size:20px;font-weight:bold}
+#search{flex:0 0 60px;padding:8px 12px}
+#search input{width:100%;height:44px;border:0;border-radius:8px;background:#202c33;color:#e9edef;padding:0 12px}
+#chips{flex:0 0 48px;display:flex;gap:8px;align-items:center;padding:0 12px}
+#chips span{padding:4px 12px;border-radius:14px;background:#202c33}
+.pane{flex:1 1 auto;overflow-y:auto}
+.row{display:flex;align-items:center;height:72px;padding:0 12px;gap:12px;cursor:pointer}
+.row img{flex:0 0 49px;width:49px;height:49px;border-radius:50%;background:#2a3942}
+.row .txt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4px}
+.row .l1,.row .l2{display:flex;justify-content:space-between;gap:8px}
+.row .name{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .prev{color:#8696a0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .time{color:#8696a0;font-size:12px}
+.badge{min-width:20px;height:20px;border-radius:10px;background:#25d366;color:#111b21;font-size:12px;text-align:center;line-height:20px;padding:0 6px}
+.chat{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;background:#0b141a}
+.chat header{flex:0 0 60px;display:flex;align-items:center;padding:0 16px;background:#202c33;font-size:16px}
+#msgs{flex:1 1 auto;overflow-y:auto;padding:12px 48px;display:flex;flex-direction:column;gap:6px}
+.message-in,.message-out{max-width:65%;padding:6px 10px;border-radius:8px}
+.message-in{align-self:flex-start;background:#202c33}
+.message-out{align-self:flex-end;background:#005c4b}
+.chat footer{flex:0 0 62px;display:flex;align-items:center;padding:0 16px;background:#202c33}
+.chat footer div[contenteditable]{flex:1;min-height:40px;padding:10px 12px;border-radius:8px;background:#2a3942}
+.intro{flex:1 1 auto;display:flex;align-items:center;justify-content:center;background:#222e35;color:#8696a0;font-size:20px}
+#fx-menu{display:none;position:fixed;left:200px;top:300px;width:180px;height:160px;background:#233138;border-radius:8px;padding:8px}
+</style></head>
+<body>
+<div id="app">
+  <div id="rail"></div>
+  <div class="side">
+    <div id="top">Chats</div>
+    <div id="search"><input aria-label="Search" placeholder="Search or start a new chat"></div>
+    <div id="chips"><span>All</span><span>Unread</span><span>Groups</span></div>
+    <div class="pane">
+      <div role="grid" aria-label="Chat list">
+        <div role="row" tabindex="-1" class="row">
+          <img src="https://pps.whatsapp.net/v/t61/fake1.jpg" alt="">
+          <div class="txt">
+            <div class="l1"><span title="Mama" dir="auto" class="name">Mama</span><span class="time">08.15</span></div>
+            <div class="l2"><span title="Jangan lupa makan ya" class="prev">Jangan lupa makan ya</span><span class="badge" aria-label="2 unread messages">2</span></div>
+          </div>
+        </div>
+        <div role="row" tabindex="-1" class="row">
+          <img src="https://pps.whatsapp.net/v/t61/fake2.jpg" alt="">
+          <div class="txt">
+            <div class="l1"><span title="Kantor" dir="auto" class="name">Kantor</span><span class="time">07.50</span></div>
+            <div class="l2"><span title="Rapat dimulai jam 10" class="prev">Rapat dimulai jam 10</span><span class="badge" aria-label="14 unread messages">14</span></div>
+          </div>
+        </div>
+        <div role="row" tabindex="-1" class="row">
+          <img src="https://pps.whatsapp.net/v/t61/fake3.jpg" alt="">
+          <div class="txt">
+            <div class="l1"><span title="Budi Santoso" dir="auto" class="name">Budi Santoso</span><span class="time">07.42</span></div>
+            <div class="l2"><span title="Oke, aku kirim sekarang" class="prev">Oke, aku kirim sekarang</span></div>
+          </div>
+        </div>
+        <div role="row" tabindex="-1" class="row">
+          <img src="https://pps.whatsapp.net/v/t61/fake4.jpg" alt="">
+          <div class="txt">
+            <div class="l1"><span title="Sari Dewi" dir="auto" class="name">Sari Dewi</span><span class="time">Kemarin</span></div>
+            <div class="l2"><span title="Terima kasih banyak" class="prev">Terima kasih banyak</span></div>
+          </div>
+        </div>
+        <div role="row" tabindex="-1" class="row">
+          <img src="https://pps.whatsapp.net/v/t61/fake5.jpg" alt="">
+          <div class="txt">
+            <div class="l1"><span title="Keluarga Besar" dir="auto" class="name">Keluarga Besar</span><span class="time">Kemarin</span></div>
+            <div class="l2"><span title="Foto liburan sudah diunggah" class="prev">Foto liburan sudah diunggah</span><span class="badge" aria-label="5 unread messages">5</span></div>
+          </div>
+        </div>
+        <div role="row" tabindex="-1" class="row">
+          <img src="https://pps.whatsapp.net/v/t61/fake6.jpg" alt="">
+          <div class="txt">
+            <div class="l1"><span title="Rina Wulandari" dir="auto" class="name">Rina Wulandari</span><span class="time">Kemarin</span></div>
+            <div class="l2"><span title="Besok jadi ketemu?" class="prev">Besok jadi ketemu?</span></div>
+          </div>
+        </div>
+        <div role="row" tabindex="-1" class="row">
+          <img src="https://pps.whatsapp.net/v/t61/fake7.jpg" alt="">
+          <div class="txt">
+            <div class="l1"><span title="Pak RT" dir="auto" class="name">Pak RT</span><span class="time">Senin</span></div>
+            <div class="l2"><span title="Kerja bakti hari Minggu" class="prev">Kerja bakti hari Minggu</span></div>
+          </div>
+        </div>
+        <div role="row" tabindex="-1" class="row">
+          <img src="https://pps.whatsapp.net/v/t61/fake8.jpg" alt="">
+          <div class="txt">
+            <div class="l1"><span title="Dimas" dir="auto" class="name">Dimas</span><span class="time">Senin</span></div>
+            <div class="l2"><span title="Sudah sampai rumah" class="prev">Sudah sampai rumah</span><span class="badge" aria-label="1 unread messages">1</span></div>
+          </div>
+        </div>
+        <div role="row" tabindex="-1" class="row">
+          <img src="https://pps.whatsapp.net/v/t61/fake9.jpg" alt="">
+          <div class="txt">
+            <div class="l1"><span title="Tim Proyek" dir="auto" class="name">Tim Proyek</span><span class="time">Minggu</span></div>
+            <div class="l2"><span title="Draf revisi sudah masuk" class="prev">Draf revisi sudah masuk</span></div>
+          </div>
+        </div>
+        <div role="row" tabindex="-1" class="row">
+          <img src="https://pps.whatsapp.net/v/t61/fake10.jpg" alt="">
+          <div class="txt">
+            <div class="l1"><span title="Toko Bangunan Jaya" dir="auto" class="name">Toko Bangunan Jaya</span><span class="time">Sabtu</span></div>
+            <div class="l2"><span title="Pesanan semen sudah siap" class="prev">Pesanan semen sudah siap</span></div>
+          </div>
+        </div>
+        <div role="row" tabindex="-1" class="row">
+          <img src="https://pps.whatsapp.net/v/t61/fake11.jpg" alt="">
+          <div class="txt">
+            <div class="l1"><span title="Ayu Lestari" dir="auto" class="name">Ayu Lestari</span><span class="time">Jumat</span></div>
+            <div class="l2"><span title="Haha iya betul" class="prev">Haha iya betul</span></div>
+          </div>
+        </div>
+        <div role="row" tabindex="-1" class="row">
+          <img src="https://pps.whatsapp.net/v/t61/fake12.jpg" alt="">
+          <div class="txt">
+            <div class="l1"><span title="Alumni SMA" dir="auto" class="name">Alumni SMA</span><span class="time">Kamis</span></div>
+            <div class="l2"><span title="Reuni bulan depan" class="prev">Reuni bulan depan</span><span class="badge" aria-label="37 unread messages">37</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="chat">
+    <header><span title="Budi Santoso" dir="auto">Budi Santoso</span></header>
+    <div id="msgs">
+        <div class="message-in"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.10, 10/11/2026] Budi Santoso: "><span class="selectable-text">Halo, apa kabar?</span></div></div></div>
+        <div class="message-out"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.11, 10/11/2026] Saya: "><span class="selectable-text">Baik, kamu sendiri?</span></div></div></div>
+        <div class="message-in"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.12, 10/11/2026] Budi Santoso: "><span class="selectable-text">Lagi di jalan nih</span></div></div></div>
+        <div class="message-out"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.13, 10/11/2026] Saya: "><span class="selectable-text">Kode OTP kamu 482913, jangan kasih ke siapa pun</span></div></div></div>
+        <div class="message-in"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.14, 10/11/2026] Budi Santoso: "><span class="selectable-text">Nanti kabari ya</span></div></div></div>
+        <div class="message-out"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.15, 10/11/2026] Saya: "><span class="selectable-text">Siap, ditunggu</span></div></div></div>
+        <div class="message-in"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.16, 10/11/2026] Budi Santoso: "><span class="selectable-text">Transfer ke BCA 1234567890 a/n Sari Dewi</span></div></div></div>
+        <div class="message-out"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.17, 10/11/2026] Saya: "><span class="selectable-text">Sudah makan belum?</span></div></div></div>
+        <div class="message-in"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.18, 10/11/2026] Budi Santoso: "><span class="selectable-text">Barusan selesai rapat</span></div></div></div>
+        <div class="message-out"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.19, 10/11/2026] Saya: "><span class="selectable-text">NIK saya 3578014512990003 ya</span></div></div></div>
+        <div class="message-in"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.20, 10/11/2026] Budi Santoso: "><span class="selectable-text">Besok libur kan?</span></div></div></div>
+        <div class="message-out"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.21, 10/11/2026] Saya: "><span class="selectable-text">Iya, kantor tutup</span></div></div></div>
+        <div class="message-in"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.22, 10/11/2026] Budi Santoso: "><span class="selectable-text">Harganya Rp 1.250.000 ya</span></div></div></div>
+        <div class="message-out"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.23, 10/11/2026] Saya: "><span class="selectable-text">Oke, sampai besok</span></div></div></div>
+        <div class="message-in"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.24, 10/11/2026] Budi Santoso: "><span class="selectable-text">Halo, apa kabar?</span></div></div></div>
+        <div class="message-out"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.25, 10/11/2026] Saya: "><span class="selectable-text">Resi JNE: JP1234567890</span></div></div></div>
+        <div class="message-in"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.26, 10/11/2026] Budi Santoso: "><span class="selectable-text">Baik, kamu sendiri?</span></div></div></div>
+        <div class="message-out"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.27, 10/11/2026] Saya: "><span class="selectable-text">Lagi di jalan nih</span></div></div></div>
+        <div class="message-in"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.28, 10/11/2026] Budi Santoso: "><span class="selectable-text">Ketemu tanggal 10/11/2026 jam 14.30</span></div></div></div>
+        <div class="message-out"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.29, 10/11/2026] Saya: "><span class="selectable-text">Nanti kabari ya</span></div></div></div>
+        <div class="message-in"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.30, 10/11/2026] Budi Santoso: "><span class="selectable-text">Siap, ditunggu</span></div></div></div>
+        <div class="message-out"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.31, 10/11/2026] Saya: "><span class="selectable-text">Sudah makan belum?</span></div></div></div>
+        <div class="message-in"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.32, 10/11/2026] Budi Santoso: "><span class="selectable-text">Barusan selesai rapat</span></div></div></div>
+        <div class="message-out"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.33, 10/11/2026] Saya: "><span class="selectable-text">Besok libur kan?</span></div></div></div>
+        <div class="message-in"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.34, 10/11/2026] Budi Santoso: "><span class="selectable-text">Iya, kantor tutup</span></div></div></div>
+        <div class="message-out"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.35, 10/11/2026] Saya: "><span class="selectable-text">Oke, sampai besok</span></div></div></div>
+        <div class="message-in"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.36, 10/11/2026] Budi Santoso: "><span class="selectable-text">Halo, apa kabar?</span></div></div></div>
+        <div class="message-out"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.37, 10/11/2026] Saya: "><span class="selectable-text">Baik, kamu sendiri?</span></div></div></div>
+        <div class="message-in"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.38, 10/11/2026] Budi Santoso: "><span class="selectable-text">Lagi di jalan nih</span></div></div></div>
+        <div class="message-out"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.39, 10/11/2026] Saya: "><span class="selectable-text">Nanti kabari ya</span></div></div></div>
+        <div class="message-in"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.40, 10/11/2026] Budi Santoso: "><span class="selectable-text">Siap, ditunggu</span></div></div></div>
+        <div class="message-out"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.41, 10/11/2026] Saya: "><span class="selectable-text">Sudah makan belum?</span></div></div></div>
+        <div class="message-in"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.42, 10/11/2026] Budi Santoso: "><span class="selectable-text">Barusan selesai rapat</span></div></div></div>
+        <div class="message-out"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.43, 10/11/2026] Saya: "><span class="selectable-text">Besok libur kan?</span></div></div></div>
+        <div class="message-in"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.44, 10/11/2026] Budi Santoso: "><span class="selectable-text">Iya, kantor tutup</span></div></div></div>
+        <div class="message-out"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.45, 10/11/2026] Saya: "><span class="selectable-text">Oke, sampai besok</span></div></div></div>
+        <div class="message-in"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.46, 10/11/2026] Budi Santoso: "><span class="selectable-text">Halo, apa kabar?</span></div></div></div>
+        <div class="message-out"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.47, 10/11/2026] Saya: "><span class="selectable-text">Baik, kamu sendiri?</span></div></div></div>
+        <div class="message-in"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.48, 10/11/2026] Budi Santoso: "><span class="selectable-text">Lagi di jalan nih</span></div></div></div>
+        <div class="message-out"><div data-testid="msg-container"><div class="copyable-text" data-pre-plain-text="[09.49, 10/11/2026] Saya: "><span class="selectable-text">Nanti kabari ya</span></div></div></div>
+    </div>
+    <footer><div contenteditable="true" role="textbox" class="lexical-rich-text-input" aria-label="Type a message"></div></footer>
+  </div>
+</div>
+<div id="fx-menu" role="menu"></div>
+<script>
+document.querySelectorAll('[role="row"]').forEach(function (r) {
+  r.addEventListener('click', function () { window.__clicked = r.querySelector('.name').title; });
+});
+</script>
+</body></html>
