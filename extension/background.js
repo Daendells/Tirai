@@ -51,7 +51,8 @@ async function togglePageCurtain(tabId) {
       await chrome.scripting.executeScript({ target, func: () => globalThis.__tiraiPage.destroy() });
       return { ok: true, active: false };
     }
-    const settings = await getSettings();
+    // Contact names stay in the extension: another site's page gets the settings without the per-chat rules.
+    const settings = { ...(await getSettings()), chats: {} };
     const { shortcuts } = await chrome.storage.session.get('shortcuts');
     await chrome.scripting.executeScript({
       target, args: [settings, (shortcuts && shortcuts.toggleFull) || 'Alt+Shift+Z'],
@@ -59,14 +60,21 @@ async function togglePageCurtain(tabId) {
     });
     await chrome.scripting.insertCSS({ target, files: Tirai.files.CONTENT_CSS });
     await chrome.scripting.executeScript({ target, files: Tirai.files.PAGE_JS });
+    // page.js does nothing in a document it cannot cover (no body), so say so instead of claiming a curtain.
+    const [{ result: covered }] = await chrome.scripting.executeScript({ target, func: () => Boolean(globalThis.__tiraiPage) });
+    if (!covered) return { ok: false, reason: 'This page cannot be covered.' };
     return { ok: true, active: true };
   } catch (error) {
     return { ok: false, reason: String(error && error.message) };
   }
 }
 
-function onPageMessage(msg, _sender, sendResponse) {
-  if (!msg || !Number.isInteger(msg.tabId)) return;
+// Only the extension's own pages (the popup) may ask for this. A content script runs inside a web page, so its
+// sender.url is that page and the message is ignored.
+const fromExtensionPage = (sender) => Boolean(sender && typeof sender.url === 'string' && sender.url.startsWith(chrome.runtime.getURL('')));
+
+function onPageMessage(msg, sender, sendResponse) {
+  if (!msg || !Number.isInteger(msg.tabId) || !fromExtensionPage(sender)) return;
   if (msg.type === 'togglePage') { togglePageCurtain(msg.tabId).then(sendResponse); return true; }
   if (msg.type === 'pageStatus') {
     chrome.scripting.executeScript({ target: { tabId: msg.tabId }, func: () => Boolean(globalThis.__tiraiPage) })
@@ -158,12 +166,28 @@ const onPermissionsAdded = ({ origins = [] } = {}) => serialized(async () => {
   }
 });
 
+// After an update the meeting pages still run the old extension's share hook and an orphaned relay, and the session
+// storage that held "sharing" is cleared. Loading the relay again lets the hook's two-second reminder reach this
+// worker, so a share that is still going covers WhatsApp again within seconds.
+async function onExtensionUpdated() {
+  const { MEETING_ORIGINS } = Tirai.settings;
+  if (!(await getSettings()).auto.share || !(await chrome.permissions.contains({ origins: MEETING_ORIGINS }))) return;
+  for (const { id: tabId } of await chrome.tabs.query({ url: MEETING_ORIGINS })) {
+    try {
+      await chrome.scripting.executeScript({ target: { tabId, allFrames: true }, files: ['content/share-relay.js'] });
+    } catch { /* tab closed, discarded or not scriptable: skip it */ }
+  }
+}
+
+// The open WhatsApp tabs come first: their old curtain stays up for a few seconds (see whatsapp.js), and the new
+// one should be there before it goes.
 async function onInstalled({ reason }) {
   try {
+    if (reason === 'install' || reason === 'update') await injectIntoOpenWhatsAppTabs().catch(() => {});
     await start({ refresh: reason === 'update' });
   } finally {
+    if (reason === 'update') await onExtensionUpdated().catch((err) => console.error('Tirai:', err));
     if (reason === 'install') await chrome.tabs.create({ url: chrome.runtime.getURL('options/options.html#welcome') }).catch(() => {});
-    if (reason === 'install' || reason === 'update') await injectIntoOpenWhatsAppTabs();
   }
 }
 

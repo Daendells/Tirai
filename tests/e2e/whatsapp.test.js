@@ -118,6 +118,14 @@ test('fails closed on unknown logged-in layout', async () => {
   });
 });
 
+test('fails closed on app chrome that has no known marker and no QR code', async () => {
+  await withPage('whatsapp-chrome.html', {}, async (page) => {
+    const info = await curtainInfo(page);
+    assert.equal(info.state.health, 'fallback');
+    assert.ok(near(area(info.tiles), VIEWPORT.w * VIEWPORT.h, VIEWPORT.w * VIEWPORT.h * 0.01));
+  });
+});
+
 test('QR page stays clear', async () => {
   await withPage('whatsapp-qr.html', {}, async (page) => {
     const normal = await curtainInfo(page);
@@ -295,6 +303,32 @@ test('a listbox the size of the chat list does not open a hole', async () => {
   });
 });
 
+test('a panel over most of the chat list does not open a hole', async () => {
+  await withPage('whatsapp.html', {}, async (page) => {
+    await page.evaluate(() => {
+      const d = document.createElement('div');
+      d.setAttribute('role', 'dialog');
+      d.style.cssText = 'position:fixed;left:64px;top:0;width:420px;height:480px;pointer-events:none';
+      document.body.append(d);
+    });
+    await sleep(400);
+    const info = await curtainInfo(page);
+    assert.ok(near(area(info.tiles), SIDE.w * SIDE.h, SIDE.w * SIDE.h * 0.01), 'area ' + area(info.tiles));
+  });
+});
+
+test('a small panel in the chat list still opens a hole', async () => {
+  await withPage('whatsapp.html', {}, async (page) => {
+    await page.evaluate(() => {
+      const d = document.createElement('div');
+      d.setAttribute('role', 'dialog');
+      d.style.cssText = 'position:fixed;left:100px;top:100px;width:300px;height:200px;pointer-events:none';
+      document.body.append(d);
+    });
+    await waitForState(page, (i) => i.tiles.length > 1 && area(i.tiles) < SIDE.w * SIDE.h - 50000, 2000);
+  });
+});
+
 test('unfocus auto', async () => {
   const auto = { share: false, unfocus: true, idle: false, idleSeconds: 60 };
   await withPage('whatsapp.html', { auto }, async (page) => {
@@ -366,6 +400,35 @@ test('resize', async () => {
   });
 });
 
+test('a resized chat list is followed on the next frame, with no new scan', async () => {
+  await withPage('whatsapp.html', {}, async (page) => {
+    await sleep(300);
+    await page.evaluate(() => {
+      const side = document.getElementById('side');
+      side.style.flexBasis = '300px';
+      side.style.width = '300px';
+    });
+    const info = await waitForState(page, (i) => i.tiles.length > 0 && near(i.tiles[0].w, 300), 120);
+    assert.ok(near(area(info.tiles), 300 * 800, 300 * 800 * 0.01), 'area ' + area(info.tiles));
+  });
+});
+
+test('a replaced chat pane is read again in the same frame, with its own rule', async () => {
+  await withPage('whatsapp.html', { chats: { 'Sari Dewi': 'hide' } }, async (page) => {
+    await sleep(300);
+    await page.evaluate(() => document.body.append(document.createElement('i'))); // a scan just ran: the next one waits
+    await page.evaluate(() => {
+      const old = document.getElementById('main');
+      const next = old.cloneNode(true);
+      next.querySelector('header span[title]').setAttribute('title', 'Sari Dewi');
+      next.querySelector('header span[title]').textContent = 'Sari Dewi';
+      old.replaceWith(next);
+    });
+    const info = await waitForState(page, (i) => i.state.rule === 'hide' && i.tiles.some((t) => holds(t, MAIN_CENTRE)), 120);
+    assert.equal(info.state.rule, 'hide');
+  });
+});
+
 test('survives host removal', async () => {
   await withPage('whatsapp.html', {}, async (page) => {
     await page.evaluate(() => document.querySelector('tirai-curtain').remove());
@@ -397,6 +460,27 @@ test('answers status messages', async () => {
     assert.equal(res.sideSource, 'side');
     assert.equal(res.mainSource, 'main');
     assert.equal(res.state.mode, 'normal');
+  });
+});
+
+test('status answers with the chat that is open now', async () => {
+  await withPage('whatsapp.html', {}, async (page) => {
+    await sleep(300);
+    await page.evaluate(() => new Promise((resolve) => {
+      const s = document.querySelector('#main header span[title]');
+      s.setAttribute('title', 'Sari Dewi'); // a scan runs for this one...
+      s.textContent = 'Sari Dewi';
+      setTimeout(() => {
+        s.setAttribute('title', 'Rina Wulandari'); // ...and the next one waits for the throttle
+        s.textContent = 'Rina Wulandari';
+        resolve();
+      }, 20);
+    }));
+    const res = await worker.evaluate(async () => {
+      const [tab] = await chrome.tabs.query({ url: 'https://web.whatsapp.com/*' });
+      return chrome.tabs.sendMessage(tab.id, { type: 'status' });
+    });
+    assert.equal(res.title, 'Rina Wulandari');
   });
 });
 

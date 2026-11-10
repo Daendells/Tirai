@@ -8,6 +8,9 @@
   const WATCHDOG_MS = 2000;
   const DEFAULT_LIVE = { sharing: false, idle: 'active' };
   const DEFAULT_SHORTCUT = 'Alt+Shift+Z';
+  // After the extension is updated, reloaded or removed this script keeps running but can no longer reach it. The
+  // curtain stays up for this long so a newer copy can take over without a bare moment, then it is removed.
+  const ORPHAN_GRACE_MS = 5000;
 
   const root = document.documentElement;
   const id = crypto.randomUUID();
@@ -27,6 +30,8 @@
   let status = null;
   let popupEls = [];
   let dead = false;
+  let loaded = false; // false until the first storage read settles: until then the whole window is covered
+  let lastView = null, orphanTimer = 0, orphanWatcher = null;
   let frame = 0, retry = 0, blurTimer = 0, trailing = 0, lastScan = 0;
   let curtain = T.curtain.createCurtain(document);
   // Hides sensitive numbers. It watches the whole page (not just the chat pane), so a chat pane that WhatsApp swaps
@@ -59,13 +64,27 @@
     return rect.h >= 24 && rect.h <= 2.5 * lampPx ? rect : undefined;
   }
 
+  // The cached side and main elements are measured again on every frame, so a dragged panel edge or a changed
+  // layout never uses an old rectangle. An element that is gone or has no size means the layout changed: scan again now.
+  function refreshRegions() {
+    const gone = (el) => {
+      if (!el) return false;
+      if (!el.isConnected) return true;
+      const r = el.getBoundingClientRect();
+      return r.width <= 0 || r.height <= 0;
+    };
+    if (gone(regions.sideEl) || gone(regions.mainEl)) scan(false);
+    else regions = T.regions.refreshRects(regions, window);
+  }
+
   function compute() {
+    refreshRegions();
     const state = effectiveState(settings, live, { focused });
     // Share, idle and unfocus cover everything: no per-chat rule and no open holes.
     const user = state.reason === 'user';
     const rule = user ? chatRule(settings, liveTitle()) : 'auto';
     const plan = coverPlan({ mode: state.mode, regions, rule, viewport: { w: window.innerWidth, h: window.innerHeight } });
-    const holes = user && plan.cover.length ? plan.holes.concat(T.holes.popupRects(popupEls, document, [regions.side, regions.main]), T.holes.focusHole(document)) : [];
+    const holes = user && plan.cover.length ? plan.holes.concat(T.holes.popupRects(popupEls, document, [regions.side, regions.main], [regions.side]), T.holes.focusHole(document)) : [];
     const next = T.geometry.tiles({ cover: plan.cover, holes, splits: plan.splits });
     let pill = null;
     if (state.mode === 'full' && state.reason === 'user') {
@@ -104,14 +123,16 @@
   function render() {
     frame = 0;
     if (dead) return;
-    if (root.dataset.tiraiInstance !== id || !chrome.runtime?.id) return destroy();
+    if (root.dataset.tiraiInstance !== id) return destroy();
+    if (!chrome.runtime?.id) return freeze();
     if (!curtain.host.isConnected) curtain = T.curtain.createCurtain(document);
     let view;
-    try { view = compute(); } catch { view = fallbackView(); }
+    try { view = loaded ? compute() : fallbackView(); } catch { view = fallbackView(); }
     view.state.masks = syncMasker(view.state.mode);
     if (maskError) view.state.maskError = true;
     tiles = view.tiles;
     status = view.state;
+    lastView = view;
     let drawn = false;
     try { drawn = curtain.render(view); } catch {
       try { drawn = curtain.render(fallbackView()); } catch { /* retried below */ }
@@ -126,11 +147,11 @@
   }
 
   // Region detection runs at most once per REGION_THROTTLE_MS: right away after a quiet period, otherwise trailing.
-  const sizeWatcher = new ResizeObserver(() => scanSoon());
+  const sizeWatcher = new ResizeObserver(() => { scheduleRender(); scanSoon(); });
   // A popup can close with a class, style or hidden change and no node change, so its own attributes are watched too.
   const popupWatcher = new MutationObserver(scheduleRender);
   let watched = [];
-  function scan() {
+  function scan(draw = true) {
     if (dead) return;
     clearTimeout(trailing);
     trailing = 0;
@@ -148,7 +169,7 @@
       els.forEach((el) => sizeWatcher.observe(el));
       watched = els;
     }
-    scheduleRender();
+    if (draw) scheduleRender();
   }
   function scanSoon() {
     if (dead || trailing) return;
@@ -170,7 +191,7 @@
     clearTimeout(blurTimer);
     blurTimer = setTimeout(() => setFocused(false), BLUR_DEBOUNCE_MS);
   });
-  listen(window, 'resize', scan);
+  listen(window, 'resize', () => scan());
   listen(document, 'focusin', scheduleRender, true);
   listen(document, 'focusout', scheduleRender, true);
   listen(document, 'scroll', scheduleRender, true);
@@ -189,13 +210,14 @@
   function onMessage(msg, _sender, sendResponse) {
     if (msg && msg.type === 'status') {
       const { mode, reason, lamp, health, rule, sideSource, mainSource } = status || {};
-      sendResponse({ title, state: { mode, reason, lamp }, health, rule, sideSource, mainSource });
+      sendResponse({ title: liveTitle(), state: { mode, reason, lamp }, health, rule, sideSource, mainSource });
     }
   }
   chrome.storage.onChanged.addListener(onStorage);
   chrome.runtime.onMessage.addListener(onMessage);
 
-  function destroy() {
+  // Stops everything that runs: listeners, observers, timers. The curtain and the masks are left as they are.
+  function stopRunning() {
     dead = true;
     ac.abort();
     cancelAnimationFrame(frame);
@@ -208,15 +230,32 @@
     bodyWatcher.disconnect();
     rootWatcher.disconnect();
     tracker.destroy();
-    masker.stop();
-    curtain.destroy();
     try {
       chrome.storage.onChanged.removeListener(onStorage);
       chrome.runtime.onMessage.removeListener(onMessage);
     } catch { /* the extension context is already gone */ }
   }
 
-  // Cover from the first frame with the defaults, then follow the stored state. A failed read keeps the defaults.
+  function destroy() {
+    stopRunning();
+    clearTimeout(orphanTimer);
+    if (orphanWatcher) orphanWatcher.disconnect();
+    masker.stop();
+    curtain.destroy();
+  }
+
+  // The extension context is gone (an update, a reload or the extension was removed). Do not uncover the page at
+  // once: the new copy of the extension is about to replace this one. Close the lamp, keep the curtain and the masks,
+  // and clean up when a newer instance appears or when none does within ORPHAN_GRACE_MS.
+  function freeze() {
+    stopRunning();
+    try { if (lastView) curtain.render({ ...lastView, lamp: null }); } catch { /* the curtain stays as it is */ }
+    orphanWatcher = new MutationObserver(() => { if (root.dataset.tiraiInstance !== id) destroy(); });
+    orphanWatcher.observe(root, { attributes: true, attributeFilter: ['data-tirai-instance'] });
+    orphanTimer = setTimeout(destroy, ORPHAN_GRACE_MS);
+  }
+
+  // Cover the whole window until the stored state is read, then follow it. A failed read keeps the defaults.
   scan();
   const read = (area, keys) => Promise.resolve().then(() => chrome.storage[area].get(keys)).catch(() => ({}));
   Promise.all([read('local', 'settings'), read('session', ['live', 'shortcuts'])]).then(([local, session]) => {
@@ -224,6 +263,7 @@
     if (local.settings) settings = normalize(local.settings);
     if (session.live) live = { ...DEFAULT_LIVE, ...session.live };
     if (session.shortcuts) shortcuts = session.shortcuts;
+    loaded = true;
     scheduleRender();
   });
 })();

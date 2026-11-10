@@ -328,6 +328,30 @@ test.describe('sharing in a meeting covers WhatsApp', () => {
     }
   });
 
+  // An update clears the session storage that says "sharing", while the page's hook keeps running. The update handler
+  // loads the relay into the meeting tabs again, so the hook's two-second reminder reaches the background and covers again.
+  test('after an update a share that is still going covers WhatsApp again within 3 s', async () => {
+    const meeting = await startShare();
+    try {
+      await waitForState(wa, (i) => i.state.reason === 'share', 1500);
+      await worker.evaluate(() => chrome.storage.session.set({ live: { sharing: false, idle: 'active', sharingTabs: {} } }));
+      await waitForState(wa, (i) => i.state.reason === 'user', 1000);
+      const injected = await worker.evaluate(async () => {
+        const real = chrome.scripting.executeScript;
+        const calls = [];
+        chrome.scripting.executeScript = (o) => { calls.push(o); return real.call(chrome.scripting, o); };
+        try { await onExtensionUpdated(); } finally { chrome.scripting.executeScript = real; }
+        return calls.map((c) => ({ files: c.files, allFrames: c.target.allFrames }));
+      });
+      assert.deepEqual(injected, [{ files: ['content/share-relay.js'], allFrames: true }]);
+      await waitForState(wa, (i) => i.state.reason === 'share', 3000);
+      await meeting.click('#stop');
+      await waitForState(wa, (i) => i.state.reason === 'user', 3000);
+    } finally {
+      await meeting.close();
+    }
+  });
+
   test('with the setting off, a share changes nothing and the scripts are gone', async () => {
     await setSettings(worker, { auto: { share: false } });
     await worker.evaluate(async () => Tirai.share.reconcile((await chrome.storage.local.get('settings')).settings));

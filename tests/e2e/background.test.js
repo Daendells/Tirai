@@ -152,6 +152,40 @@ test.describe('commands, badge, idle', () => {
     });
     assert.deepEqual(result, { injected: 1, startupFailed: true });
   });
+
+  test('on update and install the open WhatsApp tabs are injected before the startup steps run', async () => {
+    const result = await worker.evaluate(async () => {
+      const real = { publishShortcuts, injectIntoOpenWhatsAppTabs };
+      const order = [];
+      globalThis.publishShortcuts = async () => { order.push('start'); };
+      globalThis.injectIntoOpenWhatsAppTabs = async () => { order.push('inject'); };
+      try {
+        await onInstalled({ reason: 'update' });
+        const update = order.splice(0);
+        await onInstalled({ reason: 'install' }).catch(() => {});
+        return { update, install: order.slice(0, 2) };
+      } finally { Object.assign(globalThis, real); }
+    });
+    assert.deepEqual(result, { update: ['inject', 'start'], install: ['inject', 'start'] });
+  });
+
+  // The popup is an extension page. A content script runs inside a web page, so the sender it carries is that page.
+  test('togglePage and pageStatus are answered for extension pages and ignored for content scripts', async () => {
+    const result = await worker.evaluate(async (tabId) => {
+      const base = chrome.runtime.getURL('');
+      const ask = (msg, sender) => new Promise((resolve) => {
+        const answer = onPageMessage(msg, sender, resolve);
+        if (answer !== true) resolve('ignored');
+      });
+      return {
+        script: await ask({ type: 'pageStatus', tabId }, { id: chrome.runtime.id, tab: { id: tabId }, url: 'https://web.whatsapp.com/' }),
+        scriptToggle: await ask({ type: 'togglePage', tabId }, { id: chrome.runtime.id, tab: { id: tabId }, url: 'https://web.whatsapp.com/' }),
+        noSender: await ask({ type: 'pageStatus', tabId }, undefined),
+        popup: (await ask({ type: 'pageStatus', tabId }, { id: chrome.runtime.id, url: base + 'popup/popup.html' })).ok,
+      };
+    }, tabId);
+    assert.deepEqual(result, { script: 'ignored', scriptToggle: 'ignored', noSender: 'ignored', popup: true });
+  });
 });
 
 test('injects into an already open tab on install', async () => {
