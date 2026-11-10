@@ -70,7 +70,16 @@ test.describe('options', () => {
     await page.mouse.move(box.x + 100, box.y + 70);
     assert.match(await page.$eval('#frost', (e) => e.style.maskImage || e.style.webkitMaskImage), /linear-gradient/);
     await page.mouse.move(box.x + 500, box.y + 400);
-    await until(() => page.$eval('#frost', (e) => !e.style.maskImage || e.style.maskImage === 'none'));
+    // Away from the box the lamp rests in the centre, so the clear band is always visible.
+    const band = async () => {
+      const m = await page.$eval('#frost', (e) => e.style.maskImage);
+      const px = [...m.matchAll(/transparent ([\d.]+)px, transparent ([\d.]+)px/g)][0];
+      return px ? Number(px[2]) - Number(px[1]) : 0;
+    };
+    await until(async () => (await band()) === 70 + 30); // lamp is 100 px, centred at y 70, clamped to the box
+    await page.$eval('#lamp', (e) => { e.value = 60; e.dispatchEvent(new Event('input', { bubbles: true })); });
+    assert.equal(await band(), 60);
+    assert.match(await page.$eval('#frost', (e) => e.style.maskImage), /transparent/);
   });
 
   test('sensitive switch and type checkboxes save', async () => {
@@ -167,6 +176,23 @@ test.describe('options', () => {
     const target = await opened;
     await until(() => target.url().startsWith('https://web.whatsapp.com/'), 5000);
     await w.close();
+  });
+
+  test('welcome without a shortcut points to Shortcuts instead of naming a key', async () => {
+    const w = await openOptions(browser, extensionId, '#welcome');
+    await w.waitForFunction(() => /set a shortcut under Shortcuts below/.test(document.getElementById('welcomeBody2').textContent));
+    assert.doesNotMatch(await w.$eval('#welcomeBody2', (e) => e.textContent), /not set/);
+    await w.close();
+  });
+
+  test('a range being dragged is not rewritten by its own save', async () => {
+    await page.focus('#lamp');
+    await page.$eval('#lamp', (e) => { e.value = 90; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); });
+    await page.$eval('#lamp', (e) => { e.value = 95; e.dispatchEvent(new Event('input', { bubbles: true })); });
+    await until(async () => (await getSettings(worker)).lampPx === 90);
+    await sleep(200);
+    assert.equal(await page.$eval('#lamp', (e) => e.value), '95');
+    await page.$eval('#lamp', (e) => e.blur());
   });
 
   test('screenshots', async () => {

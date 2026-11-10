@@ -4,6 +4,7 @@
   const $ = (id) => document.getElementById(id);
   const TYPES = ['nik', 'card', 'account', 'otp', 'phone', 'email'];
   const PREVIEW = { x: 0, y: 0, w: 320, h: 140 };
+  const REST = { x: 160, y: 70 }; // where the lamp sits while the mouse is away, so the band is always visible
 
   const i18n = (key, ...a) => chrome.i18n.getMessage(key, a.map(String)) || key;
   const set = (el, key, args) => {
@@ -16,7 +17,7 @@
   let pointer = null;
   let fullKey = '';
 
-  const paintLamp = (lampPx) => { $('frost').style.maskImage = lampMask(lampBand(PREVIEW, pointer, lampPx), 10); };
+  const paintLamp = (lampPx) => { $('frost').style.maskImage = lampMask(lampBand(PREVIEW, pointer || REST, lampPx), 10); };
   const paintBlur = (px) => $('preview').style.setProperty('--blur', px + 'px');
 
   function renderRules() {
@@ -43,14 +44,14 @@
   function renderWelcome() {
     const show = location.hash === '#welcome';
     $('welcome').hidden = !show;
-    if (show) set($('welcomeBody2'), 'welcomeBody2', [fullKey || i18n('shortcutUnset')]);
+    if (show) set($('welcomeBody2'), fullKey ? 'welcomeBody2' : 'welcomeBody2NoKey', fullKey ? [fullKey] : null);
   }
 
   function render() {
-    $('blur').value = settings.blurPx;
-    $('blurValue').textContent = settings.blurPx + ' px';
-    $('lamp').value = settings.lampPx;
-    $('lampValue').textContent = settings.lampPx + ' px';
+    // A range being dragged keeps its own value, so our own save never snaps the thumb back.
+    for (const [id, value] of [['blur', settings.blurPx], ['lamp', settings.lampPx]]) {
+      if (document.activeElement !== $(id)) { $(id).value = value; $(id + 'Value').textContent = value + ' px'; }
+    }
     paintBlur(settings.blurPx);
     paintLamp(settings.lampPx);
     $('sensitive').checked = settings.sensitive.enabled;

@@ -55,6 +55,7 @@
   "welcomeHeading": { "message": "Tirai sudah siap" },
   "welcomeBody1": { "message": "Buka WhatsApp Web. Daftar chat Anda disamarkan, sedangkan chat yang Anda buka tetap terbaca." },
   "welcomeBody2": { "message": "Arahkan kursor ke sebuah chat untuk membacanya. Tekan $FULL$ untuk menyamarkan semuanya sebelum presentasi.", "placeholders": { "full": { "content": "$1" } } },
+  "welcomeBody2NoKey": { "message": "Arahkan kursor ke sebuah chat untuk membacanya. Untuk menyamarkan semuanya sebelum presentasi, atur pintasannya di bagian Pintasan di bawah." },
   "welcomeBody3": { "message": "NIK, nomor rekening, dan kode OTP tetap tertutup meskipun chat-nya sedang Anda buka." },
   "openWhatsApp": { "message": "Buka WhatsApp Web" },
   "lookHeading": { "message": "Tampilan" },

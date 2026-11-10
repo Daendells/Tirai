@@ -162,8 +162,8 @@ async function onInstalled({ reason }) {
   try {
     await start({ refresh: reason === 'update' });
   } finally {
+    if (reason === 'install') await chrome.tabs.create({ url: chrome.runtime.getURL('options/options.html#welcome') }).catch(() => {});
     if (reason === 'install' || reason === 'update') await injectIntoOpenWhatsAppTabs();
-    if (reason === 'install') await chrome.tabs.create({ url: chrome.runtime.getURL('options/options.html#welcome') });
   }
 }
 

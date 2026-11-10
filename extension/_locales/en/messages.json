@@ -55,6 +55,7 @@
   "welcomeHeading": { "message": "Tirai is ready" },
   "welcomeBody1": { "message": "Open WhatsApp Web. Your chat list is covered, and the chat you open stays readable." },
   "welcomeBody2": { "message": "Point at a chat to read it. Press $FULL$ to cover everything before you present.", "placeholders": { "full": { "content": "$1" } } },
+  "welcomeBody2NoKey": { "message": "Point at a chat to read it. To cover everything before you present, set a shortcut under Shortcuts below." },
   "welcomeBody3": { "message": "ID numbers, bank account numbers and OTP codes stay masked even in the chat you open." },
   "openWhatsApp": { "message": "Open WhatsApp Web" },
   "lookHeading": { "message": "Look" },
