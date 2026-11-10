@@ -65,7 +65,7 @@ To use it now:
 | `idle` | To cover the page when you leave the computer, if you turn that on. |
 | `scripting` | To add Tirai to WhatsApp tabs that were already open at install, to register the screen-share scripts, and to cover another tab on request. |
 | `activeTab` | To cover the current non-WhatsApp tab when you ask, without access to all websites. |
-| Meeting sites (optional): Google Meet, Zoom, Teams, Discord, Slack, Whereby, Jitsi | Requested only when you turn on "Cover everything while I share my screen". Used only to notice that a share started or ended. Turning the switch off removes the permission. |
+| Meeting sites (optional): Google Meet, Zoom, Teams (teams.microsoft.com, teams.cloud.microsoft and teams.live.com), Discord, Slack, Whereby, Jitsi | Requested only when you turn on "Cover everything while I share my screen". Used only to notice that a share started or ended. Turning the switch off removes the permission. |
 
 ## Privacy
 
@@ -93,6 +93,8 @@ npm run package     # writes dist/tirai-<version>.zip
 ```
 
 `npm run icons` renders the PNG icons from `extension/icons/icon.svg`, and `npm run screens` regenerates the store screenshots. Set `HEADFUL=1` to watch the e2e tests in a visible browser.
+
+Adding a meeting site later needs a migration. Turning on "Cover everything while I share my screen" requires every site in `MEETING_ORIGINS`, so users who already turned it on would lose the feature until they approve the new site. A release that adds a site must ask them to approve it again.
 
 ## Not affiliated
 

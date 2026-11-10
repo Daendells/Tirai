@@ -13,7 +13,7 @@ What Tirai stores, and where:
 
 What Tirai reads: on web.whatsapp.com it reads the page layout and the visible message text so it can cover the right areas and mask numbers such as ID, bank account and card numbers. This happens inside your browser. The text is not saved and is not sent anywhere.
 
-Optional meeting-site permission: if you turn on "Cover everything while I share my screen", the browser asks for access to a list of meeting sites (Google Meet, Zoom, Teams, Discord, Slack, Whereby, Jitsi). Tirai uses it only to notice that a screen share started or ended. It does not read or record the meeting. You can turn the switch off at any time, which removes the permission.
+Optional meeting-site permission: if you turn on "Cover everything while I share my screen", the browser asks for access to a list of meeting sites (Google Meet, Zoom, Teams, Discord, Slack, Whereby, Jitsi). For Teams, that means teams.microsoft.com, teams.cloud.microsoft and teams.live.com. Tirai uses it only to notice that a screen share started or ended. It does not read or record the meeting. You can turn the switch off at any time, which removes the permission.
 
 Covering other tabs: when you choose "Cover this tab", Tirai runs on that tab only until the page reloads, using the browser's activeTab permission.
 
@@ -30,7 +30,7 @@ Yang disimpan Tirai dan di mana:
 
 Yang dibaca Tirai: di web.whatsapp.com, Tirai membaca tata letak halaman dan teks pesan yang terlihat agar bisa menutupi area yang tepat dan menyamarkan nomor seperti NIK, rekening, dan kartu. Prosesnya terjadi di dalam browser Anda. Teks itu tidak disimpan dan tidak dikirim ke mana pun.
 
-Izin situs rapat (opsional): jika Anda mengaktifkan "Samarkan semua saat saya berbagi layar", browser akan meminta akses ke daftar situs rapat (Google Meet, Zoom, Teams, Discord, Slack, Whereby, Jitsi). Tirai memakainya hanya untuk mengetahui bahwa berbagi layar dimulai atau berhenti. Tirai tidak membaca atau merekam rapat. Anda bisa mematikan switch itu kapan saja, dan izinnya ikut dicabut.
+Izin situs rapat (opsional): jika Anda mengaktifkan "Samarkan semua saat saya berbagi layar", browser akan meminta akses ke daftar situs rapat (Google Meet, Zoom, Teams, Discord, Slack, Whereby, Jitsi). Untuk Teams, itu berarti teams.microsoft.com, teams.cloud.microsoft, dan teams.live.com. Tirai memakainya hanya untuk mengetahui bahwa berbagi layar dimulai atau berhenti. Tirai tidak membaca atau merekam rapat. Anda bisa mematikan switch itu kapan saja, dan izinnya ikut dicabut.
 
 Menutup tab lain: saat Anda memilih "Pasang tirai di tab ini", Tirai hanya berjalan di tab itu sampai halamannya dimuat ulang, memakai izin activeTab dari browser.
 

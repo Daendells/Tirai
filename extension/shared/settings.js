@@ -5,7 +5,7 @@
 })(function () {
   const MODES = ['off', 'normal', 'full'];
   const TYPES = ['nik', 'card', 'account', 'otp', 'phone', 'email'];
-  const MEETING_ORIGINS = ['https://meet.google.com/*', 'https://*.zoom.us/*', 'https://teams.microsoft.com/*',
+  const MEETING_ORIGINS = ['https://meet.google.com/*', 'https://*.zoom.us/*', 'https://teams.microsoft.com/*', 'https://teams.cloud.microsoft/*',
     'https://teams.live.com/*', 'https://discord.com/*', 'https://app.slack.com/*', 'https://*.whereby.com/*',
     'https://meet.jit.si/*'];
   const MAX_CHATS = 500;

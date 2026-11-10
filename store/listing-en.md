@@ -44,7 +44,7 @@ Tirai has one purpose: to keep WhatsApp Web chats and other sensitive page conte
 - **idle**: Lets Tirai cover the page when the user has left the computer, if the user turned that option on.
 - **scripting**: Adds Tirai to WhatsApp tabs that were already open when it was installed or updated, registers the screen-share scripts after the user turns that option on, and puts the curtain on another tab when the user asks.
 - **activeTab**: Lets the user cover the current non-WhatsApp tab with "Cover this tab" or the shortcut, without giving Tirai access to all websites.
-- **Optional host access to meeting sites** (meet.google.com, *.zoom.us, teams.microsoft.com, teams.live.com, discord.com, app.slack.com, *.whereby.com, meet.jit.si): Requested only when the user turns on "Cover everything while I share my screen". Tirai uses it to run a small script that notices when the page starts or stops a screen share, so it can cover WhatsApp during the share. It does not read or record the meeting. Turning the option off removes the permission.
+- **Optional host access to meeting sites** (meet.google.com, *.zoom.us, teams.microsoft.com, teams.cloud.microsoft, teams.live.com, discord.com, app.slack.com, *.whereby.com, meet.jit.si): Requested only when the user turns on "Cover everything while I share my screen". Tirai uses it to run a small script that notices when the page starts or stops a screen share, so it can cover WhatsApp during the share. It does not read or record the meeting. Turning the option off removes the permission.
 
 ## Data-use disclosure
 

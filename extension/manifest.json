@@ -17,6 +17,7 @@
     "https://meet.google.com/*",
     "https://*.zoom.us/*",
     "https://teams.microsoft.com/*",
+    "https://teams.cloud.microsoft/*",
     "https://teams.live.com/*",
     "https://discord.com/*",
     "https://app.slack.com/*",

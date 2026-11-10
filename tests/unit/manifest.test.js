@@ -29,6 +29,8 @@ test('manifest basics and permissions', () => {
   assert.deepEqual(manifest.permissions, ['storage', 'idle', 'scripting', 'activeTab']);
   assert.deepEqual(manifest.host_permissions, ['https://web.whatsapp.com/*']);
   assert.deepEqual(manifest.optional_host_permissions, MEETING_ORIGINS);
+  // Business Teams on the web moved from teams.microsoft.com to teams.cloud.microsoft in 2026, so both are listed.
+  for (const o of ['https://teams.microsoft.com/*', 'https://teams.cloud.microsoft/*']) assert.ok(MEETING_ORIGINS.includes(o), o);
 });
 
 test('locales', () => {

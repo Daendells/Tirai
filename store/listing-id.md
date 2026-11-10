@@ -44,7 +44,7 @@ Tirai punya satu tujuan: menjaga chat WhatsApp Web dan isi halaman sensitif lain
 - **idle**: Memungkinkan Tirai menyamarkan halaman saat pengguna meninggalkan komputer, jika opsi itu diaktifkan.
 - **scripting**: Memasang Tirai di tab WhatsApp yang sudah terbuka saat Tirai dipasang atau diperbarui, mendaftarkan skrip deteksi berbagi layar setelah pengguna mengaktifkan opsinya, dan memasang tirai di tab lain atas permintaan pengguna.
 - **activeTab**: Memungkinkan pengguna menutupi tab aktif selain WhatsApp lewat "Pasang tirai di tab ini" atau pintasan, tanpa memberi Tirai akses ke semua situs.
-- **Akses opsional ke situs rapat** (meet.google.com, *.zoom.us, teams.microsoft.com, teams.live.com, discord.com, app.slack.com, *.whereby.com, meet.jit.si): Diminta hanya saat pengguna mengaktifkan "Samarkan semua saat saya berbagi layar". Tirai memakainya untuk menjalankan skrip kecil yang mengetahui kapan halaman mulai atau berhenti berbagi layar, sehingga WhatsApp bisa disamarkan selama itu. Tirai tidak membaca atau merekam rapat. Jika opsi dimatikan, izinnya dicabut.
+- **Akses opsional ke situs rapat** (meet.google.com, *.zoom.us, teams.microsoft.com, teams.cloud.microsoft, teams.live.com, discord.com, app.slack.com, *.whereby.com, meet.jit.si): Diminta hanya saat pengguna mengaktifkan "Samarkan semua saat saya berbagi layar". Tirai memakainya untuk menjalankan skrip kecil yang mengetahui kapan halaman mulai atau berhenti berbagi layar, sehingga WhatsApp bisa disamarkan selama itu. Tirai tidak membaca atau merekam rapat. Jika opsi dimatikan, izinnya dicabut.
 
 ## Pernyataan penggunaan data
 
