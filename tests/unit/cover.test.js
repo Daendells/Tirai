@@ -83,3 +83,16 @@ test('splits are rounded and de-duplicated', () => {
   const gap = { side, main: { ...main, x: 490 }, loggedIn: true };
   assert.deepEqual(plan('normal', gap).splits, [484, 490]);
 });
+
+test('normal with hide covers everything right of the list, so a side drawer is covered too', () => {
+  // With a drawer open, #main is narrower than the space right of the chat list.
+  const narrow = { side, main: { x: 484, y: 0, w: 500, h: 800 }, loggedIn: true };
+  const p = plan('normal', narrow, 'hide');
+  assert.deepEqual(p.cover, [side, { x: 484, y: 0, w: 796, h: 800 }]);
+  assert.equal(p.health, 'ok');
+});
+
+test('normal with hide does not add an empty right-hand rectangle', () => {
+  const wide = { side: { x: 0, y: 0, w: 1280, h: 800 }, main: { x: 1280, y: 0, w: 10, h: 800 }, loggedIn: true };
+  assert.deepEqual(plan('normal', wide, 'hide').cover, [wide.side]);
+});

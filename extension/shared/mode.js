@@ -23,7 +23,9 @@
 
     if (mode === 'normal') {
       if (!side) return loggedIn ? { cover: [page], holes: [], splits, health: 'fallback' } : none('idle');
-      const cover = rule === 'hide' && main ? [side, main] : [side];
+      // Hide covers everything right of the chat list, so WhatsApp's drawer (contact info, media, search) is covered too.
+      const right = { x: side.x + side.w, y: 0, w: viewport.w - (side.x + side.w), h: viewport.h };
+      const cover = rule === 'hide' && main && right.w > 0 ? [side, right] : [side];
       return { cover, holes: [], splits, health: 'ok' };
     }
 

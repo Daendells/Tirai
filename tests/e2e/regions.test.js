@@ -81,3 +81,40 @@ test('a hidden #main is treated as absent', async () => {
   assert.equal(r.main, null);
   assert.equal(r.mainSource, null);
 });
+
+test('an unfamiliar layout with no QR code counts as logged in', async () => {
+  const r = await regionsOf('whatsapp-chrome.html');
+  assert.equal(r.side, null);
+  assert.equal(r.main, null);
+  assert.equal(r.loggedIn, true);
+});
+
+test('the QR screen is recognised by a data-ref container as well', async () => {
+  const page = await openFixture(browser, URL, 'whatsapp-qr.html');
+  try {
+    await page.evaluate(() => {
+      const c = document.querySelector('canvas');
+      c.setAttribute('aria-label', 'code');
+      c.parentElement.setAttribute('data-ref', '2@abc');
+    });
+    await loadModules(page, ['content/regions.js']);
+    assert.equal(await page.evaluate(() => Tirai.regions.findRegions().loggedIn), false);
+    await page.evaluate(() => document.querySelector('[data-ref]').removeAttribute('data-ref'));
+    assert.equal(await page.evaluate(() => Tirai.regions.findRegions().loggedIn), true);
+    await page.evaluate(() => document.querySelector('canvas').setAttribute('aria-label', 'Scan the qr code'));
+    assert.equal(await page.evaluate(() => Tirai.regions.findRegions().loggedIn), false);
+  } finally {
+    await page.close();
+  }
+});
+
+test('a compose box counts as logged in even next to a QR code', async () => {
+  const page = await openFixture(browser, URL, 'whatsapp-qr.html');
+  try {
+    await loadModules(page, ['content/regions.js']);
+    await page.evaluate(() => document.body.insertAdjacentHTML('beforeend', '<footer><div contenteditable="true"></div></footer>'));
+    assert.equal(await page.evaluate(() => Tirai.regions.findRegions().loggedIn), true);
+  } finally {
+    await page.close();
+  }
+});
