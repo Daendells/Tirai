@@ -128,3 +128,63 @@ test('screenshot with the lamp open', async () => {
     await shot(page, 'curtain-basic');
   });
 });
+
+test('page CSS cannot hide or fade the curtain', async () => {
+  await withCurtain(async (page) => {
+    await page.addStyleTag({ content: 'tirai-curtain{display:none!important;opacity:0!important;transform:scale(0)!important;clip-path:inset(100%)!important} *{visibility:hidden!important}' });
+    await render(page, view());
+    const cs = await page.evaluate(() => {
+      const h = window.c.host, t = h.shadowRoot.querySelector('.tile');
+      const ch = getComputedStyle(h);
+      return { display: ch.display, opacity: ch.opacity, transform: ch.transform, clip: ch.clipPath,
+        position: ch.position, tile: getComputedStyle(t).visibility };
+    });
+    assert.deepEqual(cs, { display: 'block', opacity: '1', transform: 'none', clip: 'none', position: 'fixed', tile: 'visible' });
+  });
+});
+
+test('the pill stays above tiles when the tile count grows', async () => {
+  await withCurtain(async (page) => {
+    await render(page, view({ tiles: [{ x: 0, y: 0, w: 50, h: 50 }], pill: 'Curtain on' }));
+    await render(page, view({ tiles: [0, 1, 2].map((i) => ({ x: i * 60, y: 0, w: 50, h: 50 })), pill: 'Curtain on' }));
+    const z = await page.evaluate(() => {
+      const r = window.c.host.shadowRoot;
+      const n = (el) => parseInt(getComputedStyle(el).zIndex, 10) || 0;
+      return { pill: n(r.querySelector('.pill')), tiles: [...r.querySelectorAll('.tile')].map(n) };
+    });
+    assert.equal(z.tiles.length, 3);
+    for (const t of z.tiles) assert.ok(z.pill > t, JSON.stringify(z));
+  });
+});
+
+test('an invalid blur still blurs', async () => {
+  await withCurtain(async (page) => {
+    for (const blurPx of [NaN, undefined, -3, 0]) {
+      await render(page, view({ blurPx }));
+      const f = await page.evaluate(() => getComputedStyle(window.c.host.shadowRoot.querySelector('.tile')).backdropFilter);
+      assert.match(f, /blur\(14px\)/, String(blurPx));
+    }
+  });
+});
+
+test('rendering the same state does not touch data-state', async () => {
+  await withCurtain(async (page) => {
+    await render(page, view());
+    const counts = await page.evaluate(async () => {
+      const seen = [];
+      const mo = new MutationObserver((rs) => seen.push(...rs));
+      mo.observe(window.c.host, { attributes: true, attributeFilter: ['data-state'] });
+      const tick = () => new Promise((r) => setTimeout(r, 20));
+      const state = { mode: 'work', n: 2 };
+      window.c.render({ tiles: [], blurPx: 8, lamp: null, pill: null, state });
+      window.c.render({ tiles: [], blurPx: 8, lamp: null, pill: null, state: { ...state } });
+      await tick();
+      const same = seen.length;
+      window.c.render({ tiles: [], blurPx: 8, lamp: null, pill: null, state: { mode: 'off' } });
+      await tick();
+      mo.disconnect();
+      return { same, total: seen.length };
+    });
+    assert.deepEqual(counts, { same: 0, total: 1 });
+  });
+});

@@ -5,13 +5,19 @@
 })(function () {
   const COMPACT_MS = 4000;
 
+  const BLUR_FALLBACK_PX = 14;
+
+  // Page CSS can reach the host element but not the shadow tree. The shadow's own !important :host rule
+  // beats the page's !important rules, so the curtain cannot be hidden, clipped or faded from outside.
   const CSS = `
+:host { all: initial !important; display: block !important; position: fixed !important; inset: 0 !important;
+  z-index: 2147483647 !important; pointer-events: none !important; }
 .tile { position: absolute; background: rgba(127,127,127,0.12); border-radius: 0; }
 .pill {
   position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
   max-width: calc(100vw - 32px); box-sizing: border-box; padding: 8px 14px; border-radius: 999px;
   font: 13px/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  color: #fff; background: rgba(28,27,25,0.86); white-space: nowrap; opacity: 0;
+  color: #fff; background: rgba(28,27,25,0.86); white-space: nowrap; opacity: 0; z-index: 1;
 }
 .pill.on { opacity: 1; }
 .pill.compact { width: 10px; height: 10px; padding: 0; overflow: hidden; }
@@ -23,7 +29,8 @@
   function createCurtain(doc = document) {
     const { lampBand, lampMask } = globalThis.Tirai.geometry;
     const host = doc.createElement('tirai-curtain');
-    host.style.cssText = 'position:fixed;inset:0;z-index:2147483647;pointer-events:none';
+    for (const [k, v] of [['position', 'fixed'], ['inset', '0'], ['z-index', '2147483647'], ['pointer-events', 'none'],
+      ['display', 'block'], ['visibility', 'visible'], ['opacity', '1']]) host.style.setProperty(k, v, 'important');
     const root = host.attachShadow({ mode: 'open' });
     const style = doc.createElement('style');
     style.textContent = CSS;
@@ -31,10 +38,11 @@
     doc.documentElement.append(host);
 
     const tileEls = [];
-    let pillEl = null, pillText = null, timer = null;
+    let pillEl = null, pillText = null, timer = null, lastState = null;
 
     function renderTiles(view) {
-      const { tiles, blurPx, lamp } = view;
+      const { tiles, lamp } = view;
+      const blurPx = Number.isFinite(view.blurPx) && view.blurPx > 0 ? view.blurPx : BLUR_FALLBACK_PX;
       tiles.forEach((r, i) => {
         let el = tileEls[i];
         if (!el) { el = tileEls[i] = doc.createElement('div'); el.className = 'tile'; root.append(el); }
@@ -82,7 +90,8 @@
       if (!host.isConnected) return false;
       renderTiles(view);
       renderPill(view.pill);
-      host.dataset.state = JSON.stringify(view.state);
+      const state = JSON.stringify(view.state);
+      if (state !== lastState) { lastState = state; host.dataset.state = state; }
       return true;
     }
 
