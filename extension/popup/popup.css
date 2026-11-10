@@ -10,28 +10,13 @@ fieldset { min-width: 0; }
 legend + * { clear: both; }
 fieldset .help { margin-top: 8px; }
 #chatTitle { margin-bottom: 8px; font-weight: 600; overflow-wrap: anywhere; }
-[hidden] { display: none !important; }
 
 .switches { display: grid; gap: 18px; }
 
 footer .links { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 2px; }
 
 .switch .help { margin-top: 3px; }
-.switch .denied { color: var(--accent); }
 
-.keys { margin: 0; display: grid; gap: 6px; }
-.keys > div { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.keys dt, .keys dd { margin: 0; }
-kbd {
-  padding: 2px 7px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  font: 12px ui-monospace, SFMono-Regular, Consolas, Menlo, monospace;
-  color: var(--text);
-}
 
-#page .primary { width: 100%; min-height: 36px; padding: 8px 14px; border: 0; border-radius: 8px; background: var(--accent); color: var(--on-accent); font-weight: 600; }
-#page .primary:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+#page .primary { width: 100%; }
 #page .help { margin-top: 8px; }
-#page .denied { color: var(--accent); }

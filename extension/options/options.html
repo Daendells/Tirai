@@ -1,0 +1,113 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title data-i18n="optTitle"></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="../ui/base.css">
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <main>
+    <h1 data-i18n="optTitle"></h1>
+
+    <section id="welcome" class="welcome" hidden>
+      <h2 data-i18n="welcomeHeading"></h2>
+      <p data-i18n="welcomeBody1"></p>
+      <p id="welcomeBody2"></p>
+      <p data-i18n="welcomeBody3"></p>
+      <button type="button" class="primary" id="openWhatsApp" data-i18n="openWhatsApp"></button>
+    </section>
+
+    <section>
+      <h2 data-i18n="lookHeading"></h2>
+      <div class="range">
+        <label for="blur" data-i18n="blurLabel"></label>
+        <output id="blurValue" for="blur"></output>
+        <input type="range" id="blur" min="6" max="30" step="1">
+      </div>
+      <div class="range">
+        <label for="lamp" data-i18n="lampLabel"></label>
+        <output id="lampValue" for="lamp"></output>
+        <input type="range" id="lamp" min="40" max="160" step="1" aria-describedby="lampHelp">
+        <p class="help" id="lampHelp" data-i18n="lampHelp"></p>
+      </div>
+      <p class="help preview-label" id="previewLabel" data-i18n="previewLabel"></p>
+      <div id="preview" aria-hidden="true">
+        <div class="row"><i class="avatar"></i><span><b style="width:42%"></b><b style="width:78%"></b></span></div>
+        <div class="row"><i class="avatar"></i><span><b style="width:58%"></b><b style="width:64%"></b></span></div>
+        <div id="frost"></div>
+      </div>
+    </section>
+
+    <section>
+      <h2 data-i18n="sensitiveHeading"></h2>
+      <div class="switch">
+        <label for="sensitive" data-i18n="switchSensitive"></label>
+        <input type="checkbox" role="switch" id="sensitive" aria-describedby="sensitiveHelp">
+        <p class="help" id="sensitiveHelp" data-i18n="switchSensitiveHelp"></p>
+      </div>
+      <div class="types">
+        <div><input type="checkbox" id="type-nik" data-type="nik" aria-describedby="typesNote"><label for="type-nik" data-i18n="typeNik"></label></div>
+        <div><input type="checkbox" id="type-card" data-type="card" aria-describedby="typesNote"><label for="type-card" data-i18n="typeCard"></label></div>
+        <div><input type="checkbox" id="type-account" data-type="account" aria-describedby="typesNote"><label for="type-account" data-i18n="typeAccount"></label></div>
+        <div><input type="checkbox" id="type-otp" data-type="otp" aria-describedby="typesNote"><label for="type-otp" data-i18n="typeOtp"></label></div>
+        <div><input type="checkbox" id="type-phone" data-type="phone" aria-describedby="typesNote"><label for="type-phone" data-i18n="typePhone"></label></div>
+        <div><input type="checkbox" id="type-email" data-type="email" aria-describedby="typesNote"><label for="type-email" data-i18n="typeEmail"></label></div>
+      </div>
+      <p class="help" id="typesNote" data-i18n="sensitiveHelp"></p>
+    </section>
+
+    <section>
+      <h2 data-i18n="autoHeading"></h2>
+      <div class="switch">
+        <label for="share" data-i18n="switchShare"></label>
+        <input type="checkbox" role="switch" id="share" aria-describedby="shareHelp">
+        <p class="help" id="shareHelp" data-i18n="switchShareHelp"></p>
+        <p class="help denied" id="shareDenied" role="alert" data-i18n="switchShareDenied" hidden></p>
+      </div>
+      <div class="switch">
+        <label for="unfocus" data-i18n="switchUnfocus"></label>
+        <input type="checkbox" role="switch" id="unfocus" aria-describedby="unfocusHelp">
+        <p class="help" id="unfocusHelp" data-i18n="switchUnfocusHelp"></p>
+      </div>
+      <div class="switch">
+        <label for="idle" data-i18n="switchIdle"></label>
+        <input type="checkbox" role="switch" id="idle" aria-describedby="idleHelp">
+        <p class="help" id="idleHelp"></p>
+      </div>
+      <div class="number">
+        <label for="idleSeconds" data-i18n="idleLabel"></label>
+        <input type="number" id="idleSeconds" min="15" max="600" step="1" inputmode="numeric" aria-describedby="idleHelp">
+      </div>
+    </section>
+
+    <section>
+      <h2 data-i18n="rulesHeading"></h2>
+      <ul id="rules"></ul>
+      <p class="help" id="rulesEmpty" data-i18n="rulesEmpty"></p>
+    </section>
+
+    <section>
+      <h2 data-i18n="shortcutsHeading"></h2>
+      <dl class="keys">
+        <div><dt data-i18n="shortcutFullLabel"></dt><dd><kbd id="keyFull"></kbd></dd></div>
+        <div><dt data-i18n="shortcutOffLabel"></dt><dd><kbd id="keyOff"></kbd></dd></div>
+      </dl>
+      <button type="button" class="link" id="editShortcuts" data-i18n="editShortcuts"></button>
+    </section>
+
+    <section id="privacy">
+      <h2 data-i18n="privacyHeading"></h2>
+      <p data-i18n="privacyBody"></p>
+      <p data-i18n="privacyLimit"></p>
+      <p class="help" data-i18n="appLockTip"></p>
+    </section>
+  </main>
+  <script src="../shared/settings.js"></script>
+  <script src="../shared/geometry.js"></script>
+  <script src="../shared/share.js"></script>
+  <script src="../shared/ui.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

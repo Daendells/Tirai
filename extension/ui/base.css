@@ -108,6 +108,23 @@ button, label, input { cursor: pointer; }
 .switch input:checked::after { background: var(--on-accent); transform: translateX(16px); }
 .switch .help { grid-column: 1; }
 
+[hidden] { display: none !important; }
+.denied { color: var(--accent); }
+kbd {
+  padding: 2px 7px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: 12px ui-monospace, SFMono-Regular, Consolas, Menlo, monospace;
+  color: var(--text);
+}
+.keys { margin: 0; display: grid; gap: 6px; }
+.keys > div { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.keys dt, .keys dd { margin: 0; }
+.primary { min-height: 36px; padding: 8px 14px; border: 0; border-radius: 8px; background: var(--accent); color: var(--on-accent); font-weight: 600; }
+
+.primary:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
 .link {
   min-height: 32px;
   padding: 0;

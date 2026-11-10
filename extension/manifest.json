@@ -28,6 +28,7 @@
       "description": "__MSG_cmdToggleOff__"
     }
   },
+  "options_page": "options/options.html",
   "background": { "service_worker": "background.js" },
   "content_scripts": [
     {
