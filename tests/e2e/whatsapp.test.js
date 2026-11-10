@@ -410,6 +410,11 @@ test('a hidden tab renders the new state before it is shown again', async () => 
       await sleep(400);
       assert.equal((await curtainInfo(page)).state.mode, 'full');
       await page.bringToFront();
+      await sleep(150);
+      const shown = await curtainInfo(page);
+      assert.equal(shown.state.mode, 'full');
+      assert.ok(near(area(shown.tiles), VIEWPORT.w * VIEWPORT.h, VIEWPORT.w * VIEWPORT.h * 0.01), 'area ' + area(shown.tiles));
+      assert.match(shown.pill, /Alt\+Shift\+Z/);
     } finally {
       await other.close();
     }
@@ -431,9 +436,61 @@ test('hovering a mask reveals it in the extension too', async () => {
         return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
       }
     });
+    const painted = () => page.evaluate(() => [...CSS.highlights.get('tirai-mask')].map(String));
     await page.mouse.move(p.x, p.y);
-    await waitForState(page, (i) => i.state.masks === 2, 1500);
+    for (let i = 0; i < 30 && (await painted()).includes('482913'); i++) await sleep(50);
+    assert.deepEqual((await painted()).sort(), ['1234567890', '3578014512990003']);
+    assert.equal((await curtainInfo(page)).state.masks, 3, 'a revealed range still counts');
     await page.mouse.move(900, 60);
-    await waitForState(page, (i) => i.state.masks === 3, 500);
+    for (let i = 0; i < 10 && !(await painted()).includes('482913'); i++) await sleep(50);
+    assert.equal((await painted()).length, 3);
+  });
+});
+
+test('a chat pane swapped for a new one is masked in the same frame', async () => {
+  await withPage('whatsapp.html', {}, async (page) => {
+    await waitForState(page, (i) => i.state.masks === 3, 2000);
+    const r = await page.evaluate(async () => {
+      const main = document.getElementById('main');
+      const next = main.cloneNode(true);
+      next.querySelector('.selectable-text').textContent = 'Kode OTP kamu 556677 ya';
+      main.replaceWith(next);
+      await Promise.resolve();
+      const painted = () => [...CSS.highlights.get('tirai-mask')].map(String).sort();
+      const afterMicrotask = painted();
+      await new Promise((res) => requestAnimationFrame(() => res()));
+      return { afterMicrotask, afterFrame: painted() };
+    });
+    const want = ['1234567890', '3578014512990003', '482913', '556677'];
+    assert.deepEqual(r.afterMicrotask, want);
+    assert.deepEqual(r.afterFrame, want);
+  });
+});
+
+test('when the masker cannot start the state says so and the cover stays', async () => {
+  await withPage('whatsapp.html', {}, async (page) => {
+    await waitForState(page, (i) => i.state.masks === 3, 2000);
+    const cdp = await page.createCDPSession();
+    const worlds = [];
+    cdp.on('Runtime.executionContextCreated', ({ context }) => worlds.push(context));
+    await cdp.send('Runtime.enable');
+    await sleep(200);
+    let broken = 0;
+    for (const w of worlds.filter((c) => !c.auxData || c.auxData.isDefault === false)) {
+      try {
+        const { result } = await cdp.send('Runtime.evaluate', {
+          contextId: w.id, returnByValue: true,
+          expression: "typeof Tirai !== 'undefined' && !!Tirai.masker && (delete window.Highlight, true)",
+        });
+        if (result.value) broken++;
+      } catch { /* a world that is gone */ }
+    }
+    assert.ok(broken >= 1, 'found the content script world');
+    await setSettings(worker, { mode: 'off' });
+    await waitForState(page, (i) => i.state.mode === 'off' && i.state.masks === 0, 2000);
+    await setSettings(worker, { mode: 'normal' });
+    const info = await waitForState(page, (i) => i.state.mode === 'normal' && i.state.maskError === true, 2000);
+    assert.equal(info.state.masks, 0);
+    assert.ok(near(area(info.tiles), SIDE.w * SIDE.h, SIDE.w * SIDE.h * 0.01), 'the cover stays');
   });
 });

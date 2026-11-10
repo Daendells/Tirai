@@ -29,8 +29,11 @@
   let dead = false;
   let frame = 0, retry = 0, blurTimer = 0, trailing = 0, lastScan = 0;
   let curtain = T.curtain.createCurtain(document);
-  // Hides sensitive numbers in the open chat. A change in how many are hidden is repainted into the state.
-  const masker = T.masker.createMasker({ getRoot: () => regions.mainEl || document.body, onChange: () => queueMicrotask(scheduleRender) });
+  // Hides sensitive numbers. It watches the whole page (not just the chat pane), so a chat pane that WhatsApp swaps
+  // out is covered from its first frame, and chat list previews are masked too. A change in how many are hidden is
+  // repainted into the state.
+  const masker = T.masker.createMasker({ getRoot: () => document.body, onChange: () => queueMicrotask(scheduleRender) });
+  let maskError = false;
   const tracker = T.lamp.createLampTracker({ win: window, getTiles: () => tiles, onChange: scheduleRender });
 
   // Fail closed: if anything goes wrong while planning, cover the whole window rather than nothing.
@@ -64,15 +67,17 @@
     };
   }
 
-  // Masks run while the curtain is on and sensitive data is enabled. A masker failure never takes the cover down.
+  // Masks run while the curtain is on and sensitive data is enabled. A masker failure never takes the cover down,
+  // and the state says so (maskError) while it lasts.
   function syncMasker(mode) {
     try {
       if (mode !== 'off' && settings.sensitive.enabled) {
         masker.setTypes(settings.sensitive.types);
         masker.start();
       } else masker.stop();
+      maskError = false;
       return masker.count();
-    } catch { return 0; }
+    } catch { maskError = true; return 0; }
   }
 
   // The open chat's name is read where it is now, so a chat switch uses its own rule on the next frame.
@@ -89,6 +94,7 @@
     let view;
     try { view = compute(); } catch { view = fallbackView(); }
     view.state.masks = syncMasker(view.state.mode);
+    if (maskError) view.state.maskError = true;
     tiles = view.tiles;
     status = view.state;
     let drawn = false;

@@ -56,7 +56,9 @@ const append = (page, text) => page.evaluate((text) => {
   d.className = 'message-in';
   d.innerHTML = '<div><span class="selectable-text"></span></div>';
   d.querySelector('span').textContent = text;
-  document.getElementById('msgs').append(d);
+  const msgs = document.getElementById('msgs');
+  msgs.append(d);
+  msgs.scrollTop = msgs.scrollHeight; // a new message arrives where the user is reading
 }, text);
 
 test('masks sensitive numbers and leaves the rest readable', async () => {
@@ -122,7 +124,9 @@ test('a number split over inline elements is masked as one', async () => {
     await page.evaluate(() => {
       const d = document.createElement('div');
       d.innerHTML = 'Kode OTP <b>48</b><i>29</i><span>13</span> ya';
-      document.getElementById('msgs').append(d);
+      const msgs = document.getElementById('msgs');
+      msgs.append(d);
+      msgs.scrollTop = msgs.scrollHeight;
     });
     const t = await until(page, (x) => x.filter((s) => s === '482913').length === 2, 500);
     assert.equal(t.length, 4);
@@ -167,6 +171,19 @@ test('a changed root is scanned again', async () => {
   });
 });
 
+test('a root change keeps the masks that are still inside the new root', async () => {
+  await withMasker(async (page) => {
+    await until(page, (x) => x.length >= 3);
+    const r = await page.evaluate(() => {
+      const had = window.m.debugTexts().slice().sort();
+      window.rootEl = document.body;
+      window.m.start();
+      return { had, now: window.m.debugTexts().slice().sort() };
+    });
+    assert.deepEqual(r.now, r.had);
+  });
+});
+
 test('hovering a mask for a moment reveals it and leaving covers it again', async () => {
   await withMasker(async (page) => {
     await until(page, (x) => x.length >= 3);
@@ -175,7 +192,7 @@ test('hovering a mask for a moment reveals it and leaving covers it again', asyn
     await sleep(200);
     assert.ok((await texts(page)).includes('482913'), 'still masked after 200 ms');
     await until(page, (x) => !x.includes('482913'), 700);
-    assert.equal(await page.evaluate(() => window.m.count()), 2);
+    assert.equal(await page.evaluate(() => window.m.count()), 3, 'a revealed range still counts');
     const other = await centreOf(page, '1234567890');
     await page.mouse.move(other.x, other.y);
     await until(page, (x) => x.includes('482913'), 300);
@@ -202,15 +219,109 @@ test('hover also works without highlightsFromPoint', async () => {
 test('copying a masked number still gives the real digits', async () => {
   await withMasker(async (page) => {
     await until(page, (x) => x.length >= 3);
-    const copied = await page.evaluate(() => {
+    const r = await page.evaluate(() => {
       const w = document.createTreeWalker(document.getElementById('main'), NodeFilter.SHOW_TEXT);
       for (let n; (n = w.nextNode());) {
         if (!n.data.includes('482913')) continue;
         const s = getSelection();
         s.selectAllChildren(n.parentElement);
-        return s.toString();
+        return { copied: s.toString(), masked: window.m.debugTexts().includes('482913'), count: window.m.count() };
       }
     });
-    assert.match(copied, /482913/);
+    assert.match(r.copied, /482913/);
+    assert.equal(r.masked, true, 'the number is still masked while it is selected');
+    assert.equal(r.count, 3);
   });
+});
+
+test('a number cannot be joined across a nested block or a line break', async () => {
+  await withMasker(async (page) => {
+    await until(page, (x) => x.length >= 3);
+    await page.evaluate(() => {
+      const d = document.createElement('div');
+      d.innerHTML = 'Kode OTP 12<div>x</div>34';
+      const e = document.createElement('div');
+      e.innerHTML = 'Kode OTP 56<br>78';
+      document.getElementById('msgs').append(d, e);
+    });
+    await sleep(300);
+    const t = await texts(page);
+    for (const s of ['1234', '12', '34', '5678', '56', '78']) assert.ok(!t.includes(s), s + ' in ' + JSON.stringify(t));
+    assert.equal(t.length, 3);
+  });
+});
+
+test('a revealed mask is covered again when the page scrolls', async () => {
+  await withMasker(async (page) => {
+    await until(page, (x) => x.length >= 3);
+    const p = await centreOf(page, '482913');
+    await page.mouse.move(p.x, p.y);
+    await until(page, (x) => !x.includes('482913'), 900);
+    await page.evaluate(() => document.getElementById('msgs').dispatchEvent(new Event('scroll')));
+    assert.ok((await texts(page)).includes('482913'));
+  });
+});
+
+test('a revealed mask is covered again when the window loses focus', async () => {
+  await withMasker(async (page) => {
+    await until(page, (x) => x.length >= 3);
+    const p = await centreOf(page, '482913');
+    await page.mouse.move(p.x, p.y);
+    await until(page, (x) => !x.includes('482913'), 900);
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    assert.ok((await texts(page)).includes('482913'));
+  });
+});
+
+test('a big batch is masked on screen within one frame and completely within 500 ms', async () => {
+  await withMasker(async (page) => {
+    await until(page, (x) => x.length >= 3);
+    const r = await page.evaluate(async () => {
+      const msgs = document.getElementById('msgs');
+      const f = document.createDocumentFragment();
+      const all = [];
+      for (let i = 0; i < 300; i++) {
+        const num = String(500000 + i);
+        all.push(num);
+        const d = document.createElement('div');
+        d.className = 'message-in';
+        d.innerHTML = '<div><span class="selectable-text"></span></div>';
+        d.querySelector('span').textContent = 'Kode OTP ' + num + ' ya';
+        f.append(d);
+      }
+      msgs.prepend(f); // the top of the list is what is on screen
+      await new Promise((res) => requestAnimationFrame(() => res()));
+      const shown = new Set(window.m.debugTexts());
+      const box = msgs.getBoundingClientRect();
+      const onScreen = [...msgs.querySelectorAll('.selectable-text')].filter((el) => {
+        const b = el.getBoundingClientRect();
+        return b.bottom > box.top && b.top < box.bottom && /OTP/.test(el.textContent);
+      }).map((el) => el.textContent.match(/\d{6}/)[0]);
+      return { onScreen, missing: onScreen.filter((n) => !shown.has(n)), all };
+    });
+    assert.ok(r.onScreen.length >= 10, 'messages on screen ' + r.onScreen.length);
+    assert.deepEqual(r.missing, []);
+    await until(page, (x) => r.all.every((n) => x.includes(n)), 500);
+  });
+});
+
+test('a failed start throws, masks nothing and can be tried again', async () => {
+  await withMasker(async (page) => {
+    const r = await page.evaluate(() => {
+      const H = window.Highlight;
+      delete window.Highlight;
+      const m2 = Tirai.masker.createMasker({ getRoot: () => document.getElementById('main'), highlightName: 'other' });
+      m2.setTypes({ otp: true });
+      let threw = false;
+      try { m2.start(); } catch { threw = true; }
+      const state = { threw, count: m2.count(), registered: CSS.highlights.has('other') };
+      window.Highlight = H;
+      m2.start();
+      return { state, again: m2.count() >= 0 && CSS.highlights.has('other') };
+    });
+    assert.deepEqual(r.state, { threw: true, count: 0, registered: false });
+    assert.equal(r.again, true);
+    await sleep(100);
+    assert.equal(await page.evaluate(() => CSS.highlights.has('other')), true);
+  }, { start: false });
 });
