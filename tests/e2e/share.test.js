@@ -380,6 +380,9 @@ test.describe('sharing in a meeting covers WhatsApp', () => {
   });
 
   test('when the meeting sites are granted, the background finishes turning the switch on', async () => {
+    // Start from "switch off, nothing registered" on its own, since the test before it may be skipped.
+    await worker.evaluate(() => chrome.scripting.unregisterContentScripts().catch(() => {}));
+    await setSettings(worker, { auto: { share: false } });
     await worker.evaluate(() => onPermissionsAdded({ origins: ['https://example.com/*'] }));
     assert.deepEqual(await worker.evaluate(() => chrome.scripting.getRegisteredContentScripts()), []);
     await worker.evaluate((origins) => onPermissionsAdded({ origins }), MEETING_ORIGINS);
