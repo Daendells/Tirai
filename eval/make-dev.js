@@ -62,11 +62,13 @@ const G = {
   nik: () => ['nik', nik()],
   nikSp: () => ['nik', chunk(nik(), [4, 4, 4, 4], ' ')],
   npwp: () => ['nik', npwp()],
+  npwp15: () => ['nik', nz(15)],
   card: () => ['card', visaMc()],
   cardG: () => ['card', chunk(visaMc(), [4, 4, 4, 4], ' ')],
   cardD: () => ['card', chunk(visaMc(), [4, 4, 4, 4], '-')],
   amex: () => ['card', luhnNumber(pick(['34', '37']), 15)],
   acct10: () => ['account', nz(10)],
+  acct10Sp: () => ['account', chunk(nz(10), [3, 3, 4], ' ')],
   acct10D: () => ['account', chunk(nz(10), [3, 3, 4], '-')],
   acct11: () => ['account', nz(11)],
   acct12: () => ['account', nz(12)],
@@ -150,6 +152,10 @@ const POSITIVE = [
   'Booking {inv} atas nama Budi, hubungi {ph}', 'Total {price}. Rek BRI {acct15}', 'resi {resi} sudah dikirim ke {email}',
   'Kode OTP {otp6} berlaku sampai jam {time}', 'Pembayaran {price} pakai kartu {cardG} ya',
   'Kirim fotokopi KTP ({nik}) ke {email}', 'Ketemu {date}, kabari di {ph}',
+  // number first, spaced accounts, transfer ke with a phone, wa.me links, amex, NPWP without dots, code statements
+  '{acct10} BCA a/n Sari', '{acct10} a.n Budi', 'BCA {acct10Sp}', 'Kirim ke {ph}', 'Transfer ke BCA {acct10} a/n Sari Dewi {ph}',
+  'Klik https://wa.me/{ph62} buat chat', 'chat aja di wa.me/{ph62}', 'amex {amex}', 'NPWP: {npwp15}',
+  '{otp6} adalah kode verifikasi Anda', '{otp6} itu kode rahasia', 'G-{otp6} adalah kode Google Anda', 'Kode rahasia kamu {otp6}, simpan baik-baik', 'tahun 2026 pin {otp4}',
 ];
 
 const NEGATIVE = [
@@ -161,7 +167,7 @@ const NEGATIVE = [
   'Kamar 1204 ya, lantai 12', 'Penerbangan GA 412 mendarat jam {time}', 'Pesawat QZ 7512 delay 1 jam', 'Mobilnya plat L 1234 AB',
   'Plat B 1234 XYZ yang parkir di depan', 'Update ke versi 2.10.4 dulu', 'Android 14 sudah bisa', 'Suhu hari ini 36.5 derajat',
   'IPK ku 3.85 alhamdulillah', 'Jaraknya 12.5 km dari sini', 'Diskon 25% sampai {date}', 'ukuran 2.5 x 1.5 m', 'Berat 12.500 gram',
-  'Antrian nomor 128, tunggu sebentar', 'https://shopee.co.id/product/123456789/9876543210', 'Klik https://wa.me/6281234567890 buat chat',
+  'Antrian nomor 128, tunggu sebentar', 'https://shopee.co.id/product/123456789/9876543210',
   'Rp 1.250.000 + Rp 85.000 = Rp 1.335.000', 'tanggal lahir 14-02-1999', 'Meeting zoom jam 09:15 WIB', 'ID order ORD-20261110-00123',
   'Pesanan #20261110001 sedang diproses', 'Struk no. 000123456789 tgl {date}', 'Kode booking ABC123 sudah ku kirim',
   'Kode promo HEMAT50 dapat potongan {price}', 'Gaji bulan ini {price} cair tanggal 25', 'Skor 3-2 buat Persebaya',
@@ -173,6 +179,8 @@ const NEGATIVE = [
   'Room 1204 on the 12th floor', 'We sold 12,500 units in 2026', 'zip 94107, San Francisco', 'Postal code 10110',
   'Sprint 14 ends on {date}', 'Table for 4 at {time}?', 'Ref INV/2026/11/000123 attached', 'price dropped to IDR 2,500,000',
   'https://example.com/p/4111111111111111', 'kode barang 48213 stok kosong', 'kode produk 1234567 masih ada',
+  'Total 125000, pakai kode promo HEMAT', 'harga 150000 dengan kode voucher', 'Ongkir 25000 kode booking ABC', 'Bayar 2500000 via kode QR',
+  'Pesanan 123456 sudah dikirim, kode resi menyusul', 'qty 12000 kode barang A1', 'ada 12345 token yg tersisa',
   'Token listrik 1234 5678 9012 3456 7890 sudah masuk', 'Nomor surat 123/456/2026', 'Order ID 1234567890123 sudah dibayar',
   'telp kantor 021 5551234 ext 12', 'OTP expired jam 14.30 tadi', 'Tiket kereta kode 7K2P9 kursi 12A', 'Pin lokasi di Jl. Merdeka 1234',
 ];

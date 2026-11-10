@@ -69,3 +69,55 @@ test('50,000 chars in under 50 ms', () => {
   D.detect(text, ALL);
   assert.ok(performance.now() - t0 < 50);
 });
+
+test('weak keywords after a number do not make prices and quantities OTPs', () => {
+  for (const t of ['Total 125000, pakai kode promo HEMAT', 'harga 150000 dengan kode voucher', 'Ongkir 25000 kode booking ABC',
+    'Bayar 2500000 via kode QR', 'Pesanan 123456 sudah dikirim, kode resi menyusul', 'qty 12000 kode barang A1',
+    'ada 12345 token yg tersisa', 'tahun 2026 pin']) {
+    assert.deepEqual(found(t), [], t);
+  }
+  assert.deepEqual(found('tahun 2026 pin 4829'), [['4829', 'otp']]);
+});
+
+test('code statements after the number are detected', () => {
+  assert.deepEqual(found('Your verification code is 482913'), [['482913', 'otp']]);
+  assert.deepEqual(found('482913 adalah kode verifikasi Anda'), [['482913', 'otp']]);
+  assert.deepEqual(found('075093 itu kode rahasia'), [['075093', 'otp']]);
+  assert.deepEqual(found('G-123456 adalah kode Google Anda'), [['123456', 'otp']]);
+});
+
+test('account keyword after the number, and spaced groups', () => {
+  assert.deepEqual(found('1234567890 BCA a/n Sari'), [['1234567890', 'account']]);
+  assert.deepEqual(found('1234567890 a.n Budi'), [['1234567890', 'account']]);
+  assert.deepEqual(found('BCA 123 456 7890'), [['123 456 7890', 'account']]);
+  assert.deepEqual(found('rek BCA 1234567890 250000'), [['1234567890', 'account']]);
+  assert.deepEqual(found('ada 123 456 7890 di sini'), []);
+});
+
+test('a mobile-shaped number after transfer ke is a phone, with a bank name it is an account', () => {
+  assert.deepEqual(found('Kirim ke 08123456789'), [['08123456789', 'phone']]);
+  assert.deepEqual(found('Transfer ke BCA 1234567890 a/n Sari Dewi 081234567890'),
+    [['1234567890', 'account'], ['081234567890', 'phone']]);
+  assert.deepEqual(found('rek 081234567890'), [['081234567890', 'account']]);
+});
+
+test('wa.me links give a phone, other links stay skipped', () => {
+  assert.deepEqual(found('https://wa.me/6281234567890'), [['6281234567890', 'phone']]);
+  assert.deepEqual(found('wa.me/6281234567890?text=hi'), [['6281234567890', 'phone']]);
+  assert.deepEqual(found('https://shopee.co.id/product/123456789/9876543210'), []);
+});
+
+test('amex keyword and NPWP without dots', () => {
+  assert.deepEqual(found('amex 378282246310005'), [['378282246310005', 'card']]);
+  assert.deepEqual(found('NPWP: 092542943407000'), [['092542943407000', 'nik']]);
+  assert.deepEqual(found('nomor 092542943407000'), []);
+});
+
+test('adversarial 50,000-char inputs finish in under 200 ms', () => {
+  for (const unit of ['1 ', '1234.']) {
+    const text = unit.repeat(50000 / unit.length);
+    const t0 = performance.now();
+    D.detect(text, ALL);
+    assert.ok(performance.now() - t0 < 200, JSON.stringify(unit));
+  }
+});
