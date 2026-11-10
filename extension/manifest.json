@@ -17,6 +17,17 @@
     "https://*.whereby.com/*",
     "https://meet.jit.si/*"
   ],
+  "action": { "default_title": "__MSG_extName__" },
+  "commands": {
+    "toggle-full": {
+      "suggested_key": { "default": "Alt+Shift+Z" },
+      "description": "__MSG_cmdToggleFull__"
+    },
+    "toggle-off": {
+      "suggested_key": { "default": "Alt+Shift+X" },
+      "description": "__MSG_cmdToggleOff__"
+    }
+  },
   "background": { "service_worker": "background.js" },
   "content_scripts": [
     {
