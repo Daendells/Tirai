@@ -215,6 +215,27 @@ test.describe('popup', () => {
     await p.close();
   });
 
+  test('a non-WhatsApp tab offers the page curtain and says when it cannot be added', async () => {
+    const { browser, extensionId, worker, popup, waId } = ctx;
+    const before = await tabIds(worker);
+    await openFixture(browser, 'https://example.com/', 'blank.html');
+    const id = (await tabIds(worker)).find((i) => !before.includes(i));
+    const p = await openPopup(browser, extensionId, id);
+    assert.equal(await p.$eval('#page', (e) => e.hidden), false);
+    assert.equal(await p.$eval('#coverTab', (e) => e.textContent), 'Cover this tab');
+    assert.equal(await p.$eval('#coverHelp', (e) => e.textContent), 'Lasts until the page reloads.');
+    assert.equal(await p.$eval('#coverFailed', (e) => e.hidden), true);
+    await assertFits(p);
+    await p.click('#coverTab'); // no host permission or activeTab grant in automation, so the injection is refused
+    await until(() => p.$eval('#coverFailed', (e) => !e.hidden));
+    assert.equal(await p.$eval('#coverFailed', (e) => e.textContent), 'Tirai cannot cover this page.');
+    await p.close();
+    const wp = await openPopup(browser, extensionId, waId);
+    assert.equal(await wp.$eval('#page', (e) => e.hidden), true);
+    await wp.close();
+    await popup.bringToFront();
+  });
+
   test('dark screenshot', async () => {
     const { popup } = ctx;
     await popup.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }]);

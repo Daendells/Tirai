@@ -42,6 +42,39 @@ async function handleCommand(command, tab) {
   }));
 }
 
+// Puts the curtain on any tab, or takes it off again. Never throws: a page we cannot script gives { ok: false }.
+async function togglePageCurtain(tabId) {
+  try {
+    const target = { tabId };
+    const [{ result: active }] = await chrome.scripting.executeScript({ target, func: () => Boolean(globalThis.__tiraiPage) });
+    if (active) {
+      await chrome.scripting.executeScript({ target, func: () => globalThis.__tiraiPage.destroy() });
+      return { ok: true, active: false };
+    }
+    const settings = await getSettings();
+    const { shortcuts } = await chrome.storage.session.get('shortcuts');
+    await chrome.scripting.executeScript({
+      target, args: [settings, (shortcuts && shortcuts.toggleFull) || 'Alt+Shift+Z'],
+      func: (s, k) => { globalThis.__tiraiSettings = s; globalThis.__tiraiShortcut = k; },
+    });
+    await chrome.scripting.insertCSS({ target, files: Tirai.files.CONTENT_CSS });
+    await chrome.scripting.executeScript({ target, files: Tirai.files.PAGE_JS });
+    return { ok: true, active: true };
+  } catch (error) {
+    return { ok: false, reason: String(error && error.message) };
+  }
+}
+
+function onPageMessage(msg, _sender, sendResponse) {
+  if (!msg || !Number.isInteger(msg.tabId)) return;
+  if (msg.type === 'togglePage') { togglePageCurtain(msg.tabId).then(sendResponse); return true; }
+  if (msg.type === 'pageStatus') {
+    chrome.scripting.executeScript({ target: { tabId: msg.tabId }, func: () => Boolean(globalThis.__tiraiPage) })
+      .then(([r]) => sendResponse({ ok: true, active: Boolean(r && r.result) }), (e) => sendResponse({ ok: false, reason: String(e && e.message) }));
+    return true;
+  }
+}
+
 async function publishShortcuts() {
   const keys = {};
   for (const c of await chrome.commands.getAll()) keys[c.name] = c.shortcut || '';
@@ -141,6 +174,7 @@ chrome.storage.onChanged.addListener(guard(async (changes, area) => {
   if (area === 'local' && changes.settings) await applySettings(changes.settings.newValue);
 }));
 chrome.runtime.onMessage.addListener((msg, sender) => { if (msg && msg.type === 'share') guard(onShareMessage)(msg, sender); });
+chrome.runtime.onMessage.addListener(onPageMessage);
 chrome.permissions.onAdded.addListener(guard(onPermissionsAdded));
 chrome.permissions.onRemoved.addListener(guard(() => reconcileShare()));
 // A share ends when the page says so or the tab goes away. Navigation inside the tab proves nothing.

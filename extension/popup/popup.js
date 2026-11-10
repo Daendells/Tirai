@@ -5,6 +5,7 @@
   let settings = normalize(null);
   let tab = null;
   let info = null;
+  let pageActive = false;
 
   const i18n = (key, ...a) => chrome.i18n.getMessage(key, a.map(String)) || key;
   const cap = (s) => s[0].toUpperCase() + s.slice(1);
@@ -43,6 +44,9 @@
     const status = $('status');
     if (status.dataset.i18n !== key) set(status, key);
 
+    $('page').hidden = info !== null;
+    set($('coverTab'), pageActive ? 'uncoverTab' : 'coverTab');
+
     $('mode-' + settings.mode).checked = true;
     set($('modeHelp'), 'modeHelp' + cap(settings.mode));
 
@@ -61,6 +65,14 @@
     $('idle').checked = settings.auto.idle;
     set($('idleHelp'), 'switchIdleHelp', [settings.auto.idleSeconds]);
   }
+
+  const pageCall = (type) => chrome.runtime.sendMessage({ type, tabId: tab.id }).catch(() => ({ ok: false }));
+  $('coverTab').addEventListener('click', async () => {
+    const res = await pageCall('togglePage');
+    $('coverFailed').hidden = res.ok;
+    if (res.ok) pageActive = res.active;
+    render();
+  });
 
   // Refresh the shared shortcut keys so the in-page pill follows a rebinding.
   async function renderShortcuts() {
@@ -130,6 +142,7 @@
     settings = normalize((await chrome.storage.local.get('settings')).settings);
     tab = await findTab();
     info = await fetchInfo();
+    if (info === null && tab) pageActive = Boolean((await pageCall('pageStatus')).active);
     render();
     await renderShortcuts();
   })();
