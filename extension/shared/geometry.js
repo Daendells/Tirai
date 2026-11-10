@@ -48,11 +48,17 @@
     return { top: clamp(local - lampPx / 2), bottom: clamp(local + lampPx / 2) };
   }
 
+  function bandFromRect(tile, rect) {
+    if (rect.y + rect.h <= tile.y || rect.y >= tile.y + tile.h) return null;
+    const clamp = (v) => Math.min(tile.h, Math.max(0, v));
+    return { top: clamp(rect.y - tile.y), bottom: clamp(rect.y + rect.h - tile.y) };
+  }
+
   function lampMask(band, featherPx) {
     if (!band) return 'none';
     const fade = Math.max(0, band.top - featherPx);
     return `linear-gradient(to bottom, #000 0px, #000 ${fade}px, transparent ${band.top}px, transparent ${band.bottom}px, #000 ${band.bottom + featherPx}px, #000 100%)`;
   }
 
-  return { intersect, subtract, cut, splitAtX, tiles, lampBand, lampMask };
+  return { intersect, subtract, cut, splitAtX, tiles, lampBand, bandFromRect, lampMask };
 });

@@ -50,6 +50,18 @@ test('the lamp opens only the tile under the pointer', async () => {
   });
 });
 
+const stops = (m) => { const [, top, bottom] = /transparent (\d+)px, transparent (\d+)px/.exec(m); return [+top, +bottom]; };
+
+test('lamp.rect sets the band when small enough and is ignored when too tall', async () => {
+  await withCurtain(async (page) => {
+    const pointer = { x: 350, y: 120 };
+    await render(page, view({ lamp: { pointer, lampPx: 60, featherPx: 12, rect: { x: 300, y: 100, w: 150, h: 50 } } }));
+    assert.deepEqual(stops((await masks(page))[1]), [60, 110]);
+    await render(page, view({ lamp: { pointer, lampPx: 60, featherPx: 12, rect: { x: 300, y: 50, w: 150, h: 151 } } }));
+    assert.deepEqual(stops((await masks(page))[1]), [50, 110]);
+  });
+});
+
 test('re-rendering with fewer tiles removes the extras and reuses the rest', async () => {
   await withCurtain(async (page) => {
     await render(page, view());

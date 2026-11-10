@@ -33,6 +33,15 @@ test('lampBand', () => {
   assert.equal(G.lampBand(tile, null, 72), null);
 });
 
+test('bandFromRect', () => {
+  const tile = { x: 0, y: 100, w: 400, h: 600 };
+  assert.deepEqual(G.bandFromRect(tile, { x: 10, y: 250, w: 380, h: 72 }), { top: 150, bottom: 222 });
+  assert.equal(G.bandFromRect(tile, { x: 10, y: 20, w: 380, h: 72 }), null);
+  assert.equal(G.bandFromRect(tile, { x: 10, y: 700, w: 380, h: 72 }), null);
+  assert.deepEqual(G.bandFromRect(tile, { x: 10, y: 80, w: 380, h: 72 }), { top: 0, bottom: 52 });
+  assert.deepEqual(G.bandFromRect(tile, { x: 10, y: 680, w: 380, h: 72 }), { top: 580, bottom: 600 });
+});
+
 test('lampMask', () => {
   assert.equal(G.lampMask(null, 10), 'none');
   assert.equal(G.lampMask({ top: 100, bottom: 172 }, 10),

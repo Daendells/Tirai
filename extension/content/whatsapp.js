@@ -45,6 +45,20 @@
     };
   }
 
+  // The row or message under the lamp pointer, read only. Anything outside the chat list and chat pane, or too
+  // small or too tall to be one row, gives no rect and the lamp keeps its fixed band.
+  const SNAP_TARGET = '[role="row"], [role="listitem"], [data-testid="msg-container"], .message-in, .message-out';
+  function lampRect(p, lampPx) {
+    if (!p) return undefined;
+    const { sideEl, mainEl } = regions;
+    const hit = document.elementsFromPoint(p.x, p.y).find((el) => (sideEl && sideEl.contains(el)) || (mainEl && mainEl.contains(el)));
+    const target = hit && hit.closest(SNAP_TARGET);
+    if (!target) return undefined;
+    const r = target.getBoundingClientRect();
+    const rect = { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) };
+    return rect.h >= 24 && rect.h <= 2.5 * lampPx ? rect : undefined;
+  }
+
   function compute() {
     const state = effectiveState(settings, live, { focused });
     // Share, idle and unfocus cover everything: no per-chat rule and no open holes.
@@ -59,9 +73,10 @@
     } else if (state.mode === 'full' && state.reason === 'share') {
       pill = chrome.i18n.getMessage('pillShare');
     }
+    const pointer = state.lamp ? tracker.pointer() : null;
     return {
       tiles: next, blurPx: settings.blurPx, pill,
-      lamp: state.lamp ? { pointer: tracker.pointer(), lampPx: settings.lampPx, featherPx: 10 } : null,
+      lamp: state.lamp ? { pointer, lampPx: settings.lampPx, featherPx: 10, rect: lampRect(pointer, settings.lampPx) } : null,
       state: { mode: state.mode, reason: state.reason, lamp: state.lamp, health: plan.health, rule,
         sideSource: regions.sideSource, mainSource: regions.mainSource },
     };

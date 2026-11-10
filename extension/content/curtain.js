@@ -27,7 +27,7 @@
 `;
 
   function createCurtain(doc = document) {
-    const { lampBand, lampMask } = globalThis.Tirai.geometry;
+    const { lampBand, bandFromRect, lampMask } = globalThis.Tirai.geometry;
     const host = doc.createElement('tirai-curtain');
     for (const [k, v] of [['position', 'fixed'], ['inset', '0'], ['z-index', '2147483647'], ['pointer-events', 'none'],
       ['display', 'block'], ['visibility', 'visible'], ['opacity', '1']]) host.style.setProperty(k, v, 'important');
@@ -52,7 +52,8 @@
         let mask = 'none';
         if (lamp) {
           const p = lamp.pointer && { x: Math.round(lamp.pointer.x), y: Math.round(lamp.pointer.y) };
-          mask = lampMask(lampBand(r, p, lamp.lampPx), lamp.featherPx);
+          const snap = lamp.rect && lamp.rect.h <= 2.5 * lamp.lampPx && lampBand(r, p, 0) && bandFromRect(r, lamp.rect);
+          mask = lampMask(snap || lampBand(r, p, lamp.lampPx), lamp.featherPx);
         }
         s.maskImage = mask;
         s.webkitMaskImage = mask;

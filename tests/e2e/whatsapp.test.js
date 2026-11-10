@@ -156,6 +156,48 @@ test('lamp stays open while the pointer crosses rows', async () => {
   });
 });
 
+const stops = (m) => { const x = /transparent (\d+)px, transparent (\d+)px/.exec(m); return x && [+x[1], +x[2]]; };
+const rectOf = (page, sel, n) => page.evaluate((sel, n) => {
+  const r = document.querySelectorAll(sel)[n].getBoundingClientRect();
+  return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) };
+}, sel, n);
+
+async function bandAt(page, p) {
+  await page.mouse.move(p.x, p.y);
+  await sleep(300);
+  const t = (await masks(page)).find((q) => holds(q, p));
+  return { t, band: t && stops(t.mask) };
+}
+
+test('lamp snaps to the chat row under the pointer', async () => {
+  await withPage('whatsapp.html', {}, async (page) => {
+    const row = await rectOf(page, 'div[role="row"]', 2);
+    const { t, band } = await bandAt(page, { x: 200, y: row.y + 30 });
+    assert.ok(band, 'band');
+    assert.ok(near(band[0], row.y - t.y) && near(band[1], row.y + row.h - t.y), `${band} vs ${JSON.stringify(row)}`);
+    await shot(page, 'wa-lamp-row');
+  });
+});
+
+test('lamp snaps to the message under the pointer in full mode', async () => {
+  await withPage('whatsapp.html', { mode: 'full' }, async (page) => {
+    const m = await rectOf(page, '[data-testid="msg-container"]', 2);
+    const { t, band } = await bandAt(page, { x: m.x + 10, y: m.y + 10 });
+    assert.ok(band, 'band');
+    assert.ok(near(band[0], m.y - t.y) && near(band[1], m.y + m.h - t.y), `${band} vs ${JSON.stringify(m)}`);
+  });
+});
+
+test('a message taller than 2.5 lamps keeps the fixed band', async () => {
+  await withPage('whatsapp.html', { mode: 'full' }, async (page) => {
+    await page.evaluate(() => { document.querySelectorAll('[data-testid="msg-container"]')[2].style.minHeight = '240px'; });
+    const m = await rectOf(page, '[data-testid="msg-container"]', 2);
+    const { band } = await bandAt(page, { x: m.x + 10, y: m.y + 100 });
+    assert.ok(band, 'band');
+    assert.equal(band[1] - band[0], 72);
+  });
+});
+
 test('clicks pass through the curtain', async () => {
   await withPage('whatsapp.html', {}, async (page) => {
     await page.mouse.click(264, 352);

@@ -23,7 +23,8 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;font:14px/1.
 .chat{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;background:#0b141a}
 .chat header{flex:0 0 60px;display:flex;align-items:center;padding:0 16px;background:#202c33;font-size:16px}
 #msgs{flex:1 1 auto;overflow-y:auto;padding:12px 48px;display:flex;flex-direction:column;gap:6px}
-.message-in,.message-out{max-width:65%;padding:6px 10px;border-radius:8px}
+.message-in,.message-out{max-width:65%;border-radius:8px}
+[data-testid="msg-container"]{padding:6px 10px}
 .message-in{align-self:flex-start;background:#202c33}
 .message-out{align-self:flex-end;background:#005c4b}
 .chat footer{flex:0 0 62px;display:flex;align-items:center;padding:0 16px;background:#202c33}
