@@ -13,6 +13,9 @@
 
   const encloses = (a, b) => a.x <= b.x + 2 && a.y <= b.y + 2 && a.x + a.w >= b.x + b.w - 2 && a.y + a.h >= b.y + b.h - 2;
 
+  const overlap = (a, b) => Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x))
+    * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+
   function isShown(el, win) {
     if (typeof el.checkVisibility !== 'function') return win.getComputedStyle(el).visibility !== 'hidden';
     return el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true, opacityProperty: true, visibilityProperty: true });
@@ -22,8 +25,9 @@
 
   // Rects of the popups in `els` that are open now. A popup that is more than half the window or wraps a whole
   // region (a full-screen dialog wrapper, a listbox holding the chat list) is not a popup we can safely leave
-  // open, so it stays covered. Safe to call again on a cached list: closed or removed popups drop out.
-  function popupRects(els, doc = document, avoid = []) {
+  // open, so it stays covered. The same goes for a popup over more than half of a region in `mostly` (the covered
+  // chat list): a panel that big would uncover most of it. Safe to call again on a cached list: closed or removed popups drop out.
+  function popupRects(els, doc = document, avoid = [], mostly = []) {
     const win = doc.defaultView;
     const half = (win.innerWidth * win.innerHeight) / 2;
     const holes = [];
@@ -32,7 +36,7 @@
       const r = rectOf(el);
       const inView = r.x < win.innerWidth && r.x + r.w > 0 && r.y < win.innerHeight && r.y + r.h > 0;
       if (r.w <= 0 || r.h <= 0 || !inView || r.w * r.h > half) continue;
-      if (avoid.some((a) => a && encloses(r, a)) || !isShown(el, win)) continue;
+      if (avoid.some((a) => a && encloses(r, a)) || mostly.some((a) => a && overlap(r, a) > 0.5 * a.w * a.h) || !isShown(el, win)) continue;
       holes.push(r);
     }
     return holes;

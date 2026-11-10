@@ -9,8 +9,8 @@
   function scripts() {
     const matches = settingsApi().MEETING_ORIGINS;
     return [
-      { id: 'tirai-share-hook', js: ['content/share-hook.js'], matches: [...matches], runAt: 'document_start', world: 'MAIN', allFrames: true, persistAcrossSessions: true },
-      { id: 'tirai-share-relay', js: ['content/share-relay.js'], matches: [...matches], runAt: 'document_start', allFrames: true, persistAcrossSessions: true },
+      { id: 'tirai-share-hook', js: ['content/share-hook.js'], matches: [...matches], runAt: 'document_start', world: 'MAIN', allFrames: true, matchOriginAsFallback: true, persistAcrossSessions: true },
+      { id: 'tirai-share-relay', js: ['content/share-relay.js'], matches: [...matches], runAt: 'document_start', allFrames: true, matchOriginAsFallback: true, persistAcrossSessions: true },
     ];
   }
 

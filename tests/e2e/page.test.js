@@ -39,6 +39,39 @@ test('page.js covers the viewport, masks the OTP and cleans up', async () => {
   } finally { await browser.close(); }
 });
 
+test('destroy() finishes the teardown even when a step throws', async () => {
+  const { browser } = await launch({ install: false });
+  try {
+    const page = await openFixture(browser, 'https://example.com/', 'blank.html');
+    await page.evaluate(() => { globalThis.__tiraiSettings = {}; });
+    await loadModules(page, PAGE_JS.slice(0, -1));
+    await page.evaluate(() => {
+      const real = Tirai.masker.createMasker;
+      Tirai.masker.createMasker = (o) => ({ ...real(o), stop() { throw new Error('boom'); } });
+    });
+    await loadModules(page, ['content/page.js']);
+    await waitForState(page, (i) => i.present && i.tiles.length > 0);
+    const threw = await page.evaluate(() => { try { globalThis.__tiraiPage.destroy(); return false; } catch { return true; } });
+    assert.equal(threw, false);
+    assert.equal((await curtainInfo(page)).present, false);
+    assert.equal(await page.evaluate(() => globalThis.__tiraiPage), undefined);
+    await page.close();
+  } finally { await browser.close(); }
+});
+
+test('page.js does nothing, and leaves no curtain, in a document without a body', async () => {
+  const { browser } = await launch({ install: false });
+  try {
+    const page = await openFixture(browser, 'https://example.com/', 'blank.html');
+    await page.evaluate(() => { globalThis.__tiraiSettings = {}; document.body.remove(); });
+    assert.equal(await page.evaluate(() => document.body), null);
+    await loadModules(page, PAGE_JS);
+    assert.equal((await curtainInfo(page)).present, false);
+    assert.equal(await page.evaluate(() => globalThis.__tiraiPage), undefined);
+    await page.close();
+  } finally { await browser.close(); }
+});
+
 test('togglePageCurtain covers, uncovers and refuses chrome pages', async () => {
   const dir = copyExtension({ hostPermissions: ['https://example.com/*'] });
   const { browser, worker } = await launch({ extensionDir: dir });
@@ -63,5 +96,36 @@ test('togglePageCurtain covers, uncovers and refuses chrome pages', async () => 
     const res = await worker.evaluate((id) => togglePageCurtain(id), cid);
     assert.equal(res.ok, false);
     assert.equal(typeof res.reason, 'string');
+  } finally { await browser.close(); fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('another site gets the settings without the contact names, and a page that cannot be covered says so', async () => {
+  const dir = copyExtension({ hostPermissions: ['https://example.com/*'] });
+  const { browser, worker } = await launch({ extensionDir: dir });
+  try {
+    await until(() => worker.evaluate(async () => !!(await chrome.storage.local.get('settings')).settings), 5000);
+    await worker.evaluate(async () => {
+      const s = Tirai.settings.normalize({ blurPx: 20, chats: { 'Budi Santoso': 'hide' } });
+      await chrome.storage.local.set({ settings: s });
+    });
+    const page = await openFixture(browser, 'https://example.com/', 'blank.html');
+    const tabId = await worker.evaluate(async () => (await chrome.tabs.query({ url: 'https://example.com/*' }))[0].id);
+    const sent = await worker.evaluate(async (id) => {
+      const real = chrome.scripting.executeScript;
+      const args = [];
+      chrome.scripting.executeScript = (o) => { if (o.args) args.push(o.args); return real.call(chrome.scripting, o); };
+      try { await togglePageCurtain(id); } finally { chrome.scripting.executeScript = real; }
+      return args;
+    }, tabId);
+    assert.equal(sent.length, 1);
+    assert.deepEqual(sent[0][0].chats, {});
+    assert.equal(sent[0][0].blurPx, 20);
+    assert.equal(JSON.stringify(sent).includes('Budi'), false);
+    await worker.evaluate((id) => togglePageCurtain(id), tabId); // off again
+
+    await page.evaluate(() => document.body.remove());
+    const res = await worker.evaluate((id) => togglePageCurtain(id), tabId);
+    assert.equal(res.ok, false);
+    assert.equal((await curtainInfo(page)).present, false);
   } finally { await browser.close(); fs.rmSync(dir, { recursive: true, force: true }); }
 });

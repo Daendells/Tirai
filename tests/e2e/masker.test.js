@@ -325,3 +325,20 @@ test('a failed start throws, masks nothing and can be tried again', async () => 
     assert.equal(await page.evaluate(() => CSS.highlights.has('other')), true);
   }, { start: false });
 });
+
+test('text revealed by a window resize is masked at once', async () => {
+  await withMasker(async (page) => {
+    await until(page, (x) => x.length >= 3);
+    await page.evaluate(() => {
+      window.requestIdleCallback = () => 0; // off-screen text waits for idle time, which never comes here
+      const d = document.createElement('div');
+      d.style.cssText = 'position:fixed;top:100px;left:1500px';
+      d.textContent = 'Kode OTP 731942';
+      document.getElementById('main').append(d);
+    });
+    await sleep(150);
+    assert.equal((await texts(page)).includes('731942'), false);
+    await page.setViewport({ width: 1900, height: 800 });
+    await until(page, (x) => x.includes('731942'), 300);
+  });
+});

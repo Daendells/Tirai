@@ -5,11 +5,11 @@ const settings = require('../../extension/shared/settings.js');
 const { MEETING_ORIGINS } = settings;
 const HOOK = {
   id: 'tirai-share-hook', js: ['content/share-hook.js'], matches: MEETING_ORIGINS, runAt: 'document_start',
-  world: 'MAIN', allFrames: true, persistAcrossSessions: true,
+  world: 'MAIN', allFrames: true, matchOriginAsFallback: true, persistAcrossSessions: true,
 };
 const RELAY = {
   id: 'tirai-share-relay', js: ['content/share-relay.js'], matches: MEETING_ORIGINS, runAt: 'document_start',
-  allFrames: true, persistAcrossSessions: true,
+  allFrames: true, matchOriginAsFallback: true, persistAcrossSessions: true,
 };
 
 // A small stand-in for the chrome.* calls that share.js makes. Like the real API, registering a known id and

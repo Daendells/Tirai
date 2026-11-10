@@ -1,6 +1,7 @@
 // Puts the curtain on any page, on request, until the page reloads. Injected by the background worker.
 (function () {
-  if (globalThis.__tiraiPage) return;
+  // A document without a body (an SVG file, a bare frameset) cannot be covered, and half-starting would leave an orphan curtain.
+  if (globalThis.__tiraiPage || !document.body) return;
   const T = globalThis.Tirai;
   const settings = T.settings.normalize(globalThis.__tiraiSettings);
   const shortcut = globalThis.__tiraiShortcut || 'Alt+Shift+Z';
@@ -46,15 +47,14 @@
   listen(document, 'scroll', scheduleRender, true);
   listen(document, 'visibilitychange', () => { if (!document.hidden) scheduleRender(); });
 
+  // Each step is guarded, so one that throws never leaves the curtain or the global behind.
   function destroy() {
-    dead = true;
-    ac.abort();
-    cancelAnimationFrame(frame);
-    watcher.disconnect();
-    tracker.destroy();
-    masker.stop();
-    curtain.destroy();
     delete globalThis.__tiraiPage;
+    dead = true;
+    for (const step of [() => ac.abort(), () => cancelAnimationFrame(frame), () => watcher.disconnect(),
+      () => tracker.destroy(), () => masker.stop(), () => curtain.destroy()]) {
+      try { step(); } catch { /* keep tearing down */ }
+    }
   }
   globalThis.__tiraiPage = { destroy };
   render();

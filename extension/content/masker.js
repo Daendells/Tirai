@@ -270,6 +270,7 @@
       doc.addEventListener('scroll', () => { coverAll(); catchUp(); }, { ...o, capture: true, passive: true });
       doc.addEventListener('visibilitychange', () => { if (doc.hidden) coverAll(); else catchUp(); }, o);
       win.addEventListener('blur', coverAll, o);
+      win.addEventListener('resize', catchUp, o);
       doc.documentElement.addEventListener('pointerleave', coverAll, o);
       bind(getRoot());
     }
