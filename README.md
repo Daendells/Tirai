@@ -10,10 +10,10 @@ Tirai (Indonesian for "curtain") is a Chrome and Edge extension that hides your 
 - **Full mode** covers the whole page. Press `Alt+Shift+Z` to switch between Normal and Full.
 - **Reading lamp.** Hold the cursor over a chat row or a message and a clear band opens around just that row or message.
 - **Per-chat rule.** For the chat you have open, choose to follow the mode, always hide it, or always show it.
-- **Sensitive numbers are masked** even in the chat you are reading: ID numbers (NIK), bank account numbers, card numbers, one-time codes, and phone numbers. E-mail addresses can be switched on. Hover a mask for a moment to read it. Copying still gives the real text.
+- **Sensitive numbers are masked** even in the chat you are reading: ID numbers (NIK), bank account numbers, card numbers, OTP codes, and phone numbers. Email addresses can be switched on. Hover a mask for a moment to read it. Copying still gives the real text.
 - **Screen sharing.** If you turn it on, Tirai covers everything while a browser meeting shares your screen, and uncovers it when the share ends.
 - **Other triggers.** You can also cover the page when the WhatsApp window is not active, or when you have left the computer.
-- **Any tab.** "Cover this tab" in the popup (or `Alt+Shift+Z` on a non-WhatsApp tab) puts the same curtain and masks on a banking or e-mail page, until the page reloads.
+- **Any tab.** "Cover this tab" in the popup (or `Alt+Shift+Z` on a non-WhatsApp tab) puts the same curtain and masks on a banking or email page, until the page reloads.
 - The popup and settings page are in Indonesian and English.
 
 ![Full mode: the whole page is covered and the lamp shows one message](store/screenshots/2-full.png)
@@ -38,9 +38,9 @@ The detector was measured on a blind test set of 200 synthetic messages. Its tes
 | NIK | 26 | 0 | 0 | 100.0% | 100.0% |
 | Card | 25 | 0 | 0 | 100.0% | 100.0% |
 | Bank account | 25 | 1 | 0 | 100.0% | 96.2% |
-| One-time code | 29 | 1 | 0 | 100.0% | 96.7% |
+| OTP code | 29 | 1 | 0 | 100.0% | 96.7% |
 | Phone | 30 | 0 | 0 | 100.0% | 100.0% |
-| E-mail | 12 | 0 | 0 | 100.0% | 100.0% |
+| Email | 12 | 0 | 0 | 100.0% | 100.0% |
 | All types | 147 | 2 | 0 | 100.0% | 98.7% |
 
 The messages come from a script with fixed templates and all numbers are synthetic, so real chats, with typos and odd formats, will do worse. [eval/README.md](eval/README.md) explains how the sets were made, how a hit is counted, and the known limits.

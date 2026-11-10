@@ -17,7 +17,7 @@ In Normal mode, the chat list is covered with a frosted curtain and the chat you
 What you can do with it:
 - Cover the chat list, or the whole page, and read one row or message at a time with the lamp.
 - Choose, for the chat you have open, whether it follows the mode, is always hidden, or is always shown.
-- Hide sensitive numbers in the chat you are reading: ID numbers (NIK), bank account numbers, card numbers, one-time codes, and phone numbers. E-mail addresses can be switched on. Hover a number for a moment to read it. Copying still gives the real text.
+- Hide sensitive numbers in the chat you are reading: ID numbers (NIK), bank account numbers, card numbers, OTP codes, and phone numbers. Email addresses can be switched on. Hover a number for a moment to read it. Copying still gives the real text.
 - Cover everything automatically while a browser meeting shares your screen (Google Meet, Zoom, Teams, Discord, Slack, Whereby, Jitsi). This is optional and Tirai asks for the permission only when you turn it on.
 - Cover the page when the WhatsApp window is not active, or when you have left the computer. Both are optional.
 - Put the same curtain on any other tab, such as a banking page, with "Cover this tab".
