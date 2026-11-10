@@ -215,12 +215,21 @@ test.describe('sharing in a meeting covers WhatsApp', () => {
     pillText = await worker.evaluate(() => chrome.i18n.getMessage('pillShare'));
     wa = await openFixture(browser, WHATSAPP, 'whatsapp.html');
     await waitForState(wa, (i) => i.state && i.state.mode === 'normal');
+    // Real tab capture needs a Chrome that can capture headless; Linux CI runners cannot.
+    const probe = await openFixture(browser, MEETING, 'meeting.html');
+    await probe.click('#share');
+    await probe.waitForFunction(() => document.getElementById('result').textContent !== '', { timeout: 10000 }).catch(() => {});
+    canCapture = (await probe.$eval('#result', (e) => e.textContent)) === 'sharing';
+    await probe.close();
+    await waitForState(wa, (i) => i.state && i.state.mode === 'normal', 5000);
   });
   after(async () => {
     if (browser) await browser.close();
     if (dir) fs.rmSync(dir, { recursive: true, force: true });
   });
 
+  let canCapture = false;
+  const NO_CAPTURE = 'real tab capture is not available in this Chrome (for example headless Linux CI)';
   async function startShare() {
     const meeting = await openFixture(browser, MEETING, 'meeting.html');
     await meeting.click('#share');
@@ -234,7 +243,8 @@ test.describe('sharing in a meeting covers WhatsApp', () => {
     assert.deepEqual(ids.sort(), ['tirai-share-hook', 'tirai-share-relay']);
   });
 
-  test('starting a share covers everything within 1.5 s, stopping returns to normal within 3 s', async () => {
+  test('starting a share covers everything within 1.5 s, stopping returns to normal within 3 s', async (t) => {
+    if (!canCapture) return t.skip(NO_CAPTURE);
     const meeting = await startShare();
     try {
       const covered = await waitForState(wa, (i) => i.state.reason === 'share', 1500);
@@ -253,7 +263,8 @@ test.describe('sharing in a meeting covers WhatsApp', () => {
     }
   });
 
-  test('closing the meeting tab while sharing returns WhatsApp to normal', async () => {
+  test('closing the meeting tab while sharing returns WhatsApp to normal', async (t) => {
+    if (!canCapture) return t.skip(NO_CAPTURE);
     const meeting = await startShare();
     await waitForState(wa, (i) => i.state.reason === 'share', 1500);
     await meeting.close();
@@ -263,7 +274,8 @@ test.describe('sharing in a meeting covers WhatsApp', () => {
     assert.deepEqual(live.sharingTabs, {});
   });
 
-  test('reloading the meeting tab while sharing returns WhatsApp to normal', async () => {
+  test('reloading the meeting tab while sharing returns WhatsApp to normal', async (t) => {
+    if (!canCapture) return t.skip(NO_CAPTURE);
     const meeting = await startShare();
     try {
       await waitForState(wa, (i) => i.state.reason === 'share', 1500);
@@ -276,7 +288,8 @@ test.describe('sharing in a meeting covers WhatsApp', () => {
   });
 
   // Moving around inside the meeting page says nothing about the share, so the cover must stay.
-  test('an iframe, an iframe navigation and a URL change inside the page do not end the share', async () => {
+  test('an iframe, an iframe navigation and a URL change inside the page do not end the share', async (t) => {
+    if (!canCapture) return t.skip(NO_CAPTURE);
     const meeting = await startShare();
     try {
       await waitForState(wa, (i) => i.state.reason === 'share', 1500);
@@ -313,7 +326,8 @@ test.describe('sharing in a meeting covers WhatsApp', () => {
     }
   });
 
-  test('a share the background lost track of is announced again and covers again', async () => {
+  test('a share the background lost track of is announced again and covers again', async (t) => {
+    if (!canCapture) return t.skip(NO_CAPTURE);
     const meeting = await startShare();
     try {
       await waitForState(wa, (i) => i.state.reason === 'share', 1500);
@@ -330,7 +344,8 @@ test.describe('sharing in a meeting covers WhatsApp', () => {
 
   // An update clears the session storage that says "sharing", while the page's hook keeps running. The update handler
   // loads the relay into the meeting tabs again, so the hook's two-second reminder reaches the background and covers again.
-  test('after an update a share that is still going covers WhatsApp again within 3 s', async () => {
+  test('after an update a share that is still going covers WhatsApp again within 3 s', async (t) => {
+    if (!canCapture) return t.skip(NO_CAPTURE);
     const meeting = await startShare();
     try {
       await waitForState(wa, (i) => i.state.reason === 'share', 1500);
@@ -352,7 +367,8 @@ test.describe('sharing in a meeting covers WhatsApp', () => {
     }
   });
 
-  test('with the setting off, a share changes nothing and the scripts are gone', async () => {
+  test('with the setting off, a share changes nothing and the scripts are gone', async (t) => {
+    if (!canCapture) return t.skip(NO_CAPTURE);
     await setSettings(worker, { auto: { share: false } });
     await worker.evaluate(async () => Tirai.share.reconcile((await chrome.storage.local.get('settings')).settings));
     assert.deepEqual(await worker.evaluate(() => chrome.scripting.getRegisteredContentScripts()), []);

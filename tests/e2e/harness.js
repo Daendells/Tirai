@@ -31,6 +31,11 @@ function copyExtension({ hostPermissions = [] } = {}) {
   return dir;
 }
 
+function langEnv(args) {
+  const lang = args.find((a) => a.startsWith('--lang='));
+  return lang ? { ...process.env, LANGUAGE: lang.slice(7), LANG: lang.slice(7) } : process.env;
+}
+
 async function launch({ extensionDir = EXT_DIR, install = true, args = [] } = {}) {
   const browser = await puppeteer.launch({
     executablePath: chromePath(),
@@ -41,6 +46,8 @@ async function launch({ extensionDir = EXT_DIR, install = true, args = [] } = {}
     // GitHub's Ubuntu 23.10+ runners restrict unprivileged user namespaces through AppArmor, which stops Chrome's
     // sandbox from starting, so CI runs Chrome without it. Local runs keep the sandbox.
     args: [...(process.env.CI ? ['--no-sandbox'] : []), ...args],
+    // Chrome on Linux ignores --lang and takes the UI language from the environment.
+    env: langEnv(args),
   });
   if (!install) return { browser, extensionId: null, worker: null };
   try {

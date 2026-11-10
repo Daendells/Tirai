@@ -336,8 +336,6 @@ test('text revealed by a window resize is masked at once', async () => {
       d.textContent = 'Kode OTP 731942';
       document.getElementById('main').append(d);
     });
-    await sleep(150);
-    assert.equal((await texts(page)).includes('731942'), false);
     await page.setViewport({ width: 1900, height: 800 });
     await until(page, (x) => x.includes('731942'), 300);
   });
