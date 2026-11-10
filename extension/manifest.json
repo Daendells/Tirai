@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "__MSG_extName__",
+  "description": "__MSG_extDescription__",
+  "version": "0.1.0",
+  "minimum_chrome_version": "120",
+  "default_locale": "en",
+  "permissions": ["storage", "idle", "scripting", "activeTab"],
+  "host_permissions": ["https://web.whatsapp.com/*"],
+  "optional_host_permissions": [
+    "https://meet.google.com/*",
+    "https://*.zoom.us/*",
+    "https://teams.microsoft.com/*",
+    "https://teams.live.com/*",
+    "https://discord.com/*",
+    "https://app.slack.com/*",
+    "https://*.whereby.com/*",
+    "https://meet.jit.si/*"
+  ],
+  "background": { "service_worker": "background.js" }
+}
