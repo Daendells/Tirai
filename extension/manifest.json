@@ -17,7 +17,7 @@
     "https://*.whereby.com/*",
     "https://meet.jit.si/*"
   ],
-  "action": { "default_title": "__MSG_extName__" },
+  "action": { "default_title": "__MSG_extName__", "default_popup": "popup/popup.html" },
   "commands": {
     "toggle-full": {
       "suggested_key": { "default": "Alt+Shift+Z" },

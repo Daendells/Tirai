@@ -1,0 +1,17 @@
+body { width: 360px; }
+main { padding: 16px 20px 12px; }
+main > * + * { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+
+h1 { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+#status { margin-top: 6px; font-size: 15px; font-weight: 600; line-height: 1.35; }
+
+legend { float: left; width: 100%; padding: 0; margin-bottom: 8px; font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+fieldset { min-width: 0; }
+legend + * { clear: both; }
+fieldset .help { margin-top: 8px; }
+#chatTitle { margin-bottom: 8px; font-weight: 600; overflow-wrap: anywhere; }
+[hidden] { display: none !important; }
+
+.switches { display: grid; gap: 18px; }
+
+footer .links { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 2px; }

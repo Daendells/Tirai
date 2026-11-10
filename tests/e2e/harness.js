@@ -16,13 +16,14 @@ function chromePath() {
     : '/usr/bin/google-chrome';
 }
 
-async function launch({ extensionDir = EXT_DIR, install = true } = {}) {
+async function launch({ extensionDir = EXT_DIR, install = true, args = [] } = {}) {
   const browser = await puppeteer.launch({
     executablePath: chromePath(),
     headless: !process.env.HEADFUL,
     pipe: true,
     enableExtensions: install ? [extensionDir] : true,
     defaultViewport: { width: 1280, height: 800 },
+    args,
   });
   if (!install) return { browser, extensionId: null, worker: null };
   try {

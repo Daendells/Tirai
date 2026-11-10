@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Tirai</title>
+  <meta name="viewport" content="width=360">
+  <link rel="stylesheet" href="../ui/base.css">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Tirai</h1>
+      <p id="status" role="status"></p>
+    </header>
+
+    <fieldset id="mode">
+      <legend data-i18n="modeHeading"></legend>
+      <div class="segments">
+        <input type="radio" name="mode" id="mode-off" value="off"><label for="mode-off" data-i18n="modeOff"></label>
+        <input type="radio" name="mode" id="mode-normal" value="normal"><label for="mode-normal" data-i18n="modeNormal"></label>
+        <input type="radio" name="mode" id="mode-full" value="full"><label for="mode-full" data-i18n="modeFull"></label>
+      </div>
+      <p class="help" id="modeHelp"></p>
+    </fieldset>
+
+    <fieldset id="chat" hidden>
+      <legend data-i18n="chatHeading"></legend>
+      <p id="chatTitle"></p>
+      <div class="segments">
+        <input type="radio" name="rule" id="rule-auto" value="auto"><label for="rule-auto" data-i18n="ruleAuto"></label>
+        <input type="radio" name="rule" id="rule-hide" value="hide"><label for="rule-hide" data-i18n="ruleHide"></label>
+        <input type="radio" name="rule" id="rule-show" value="show"><label for="rule-show" data-i18n="ruleShow"></label>
+      </div>
+      <p class="help" id="ruleHelp"></p>
+    </fieldset>
+
+    <section class="switches">
+      <div class="switch">
+        <label for="sensitive" data-i18n="switchSensitive"></label>
+        <input type="checkbox" role="switch" id="sensitive" aria-describedby="sensitiveHelp">
+        <p class="help" id="sensitiveHelp" data-i18n="switchSensitiveHelp"></p>
+      </div>
+      <div class="switch">
+        <label for="unfocus" data-i18n="switchUnfocus"></label>
+        <input type="checkbox" role="switch" id="unfocus" aria-describedby="unfocusHelp">
+        <p class="help" id="unfocusHelp" data-i18n="switchUnfocusHelp"></p>
+      </div>
+      <div class="switch">
+        <label for="idle" data-i18n="switchIdle"></label>
+        <input type="checkbox" role="switch" id="idle" aria-describedby="idleHelp">
+        <p class="help" id="idleHelp" data-i18n="switchIdleHelp"></p>
+      </div>
+    </section>
+
+    <footer>
+      <p class="help" id="shortcuts"></p>
+      <div class="links">
+        <button type="button" class="link" id="editShortcuts" data-i18n="editShortcuts"></button>
+        <button type="button" class="link" id="openOptions" data-i18n="openOptions" hidden></button>
+      </div>
+    </footer>
+  </main>
+  <script src="../shared/settings.js"></script>
+  <script src="../shared/ui.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
